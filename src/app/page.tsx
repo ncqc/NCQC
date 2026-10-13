@@ -1,69 +1,263 @@
-import Image from "next/image";
+import Link from 'next/link';
+import Typewriter from '@/components/Typewriter';
+import { getAchievementsData } from '@/data/achievements';
+import { getProjectsData } from '@/data/projects';
+import { getGalleryHeroImages } from '@/data/gallery';
+import { getCompetitionsData } from '@/data/competitions';
+import { getSiteSettingsAsync } from '@/data/settings';
+import RenderStyledText from '@/components/RenderStyledText';
+import { stripStyledText } from '@/utils/styledText';
 
-export default function Home() {
+export default async function Home() {
+  const achievements = await getAchievementsData();
+  const projects = await getProjectsData();
+  const heroImages = await getGalleryHeroImages();
+  const competitions = await getCompetitionsData();
+  const settings = await getSiteSettingsAsync();
+  
+  // Get featured achievements, fallback to newest 3 if none are featured yet
+  const featuredAchievements = achievements.filter(a => a.isFeatured).slice(0, 3);
+  const displayAchievements = featuredAchievements.length > 0 ? featuredAchievements : achievements.slice(0, 3);
+
+  // Get starred projects, fallback to newest 3
+  const starredProjects = projects.filter(p => p.isStarred).slice(0, 3);
+  const displayProjects = starredProjects.length > 0 ? starredProjects : projects.slice(0, 3);
+
+  // Get starred competitions for Home Page (maximum 3)
+  const starredList = competitions.filter(c => c.isStarred).slice(0, 3);
+  const starredCompetitions = starredList.length > 0 ? starredList : competitions.slice(0, 3);
+  const showUpcomingBattles = settings.showUpcomingBattles && starredCompetitions.length > 0;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      {/* Ultra-Clean Hero Section */}
+      <section className="hero">
+        <div className="hero-container">
+            <div className="hero-main-centered">
+                <div className="hero-visual reveal-fade is-visible">
+                    <img src="/bar.png" alt="Quiz Society Home Logo" className="home-logo-centered" />
+                </div>
+                <div className="hero-content-centered reveal-fade delay-1 is-visible">
+                    <h1 className="hero-title-main">
+                        <span className="title-dark">Nalanda College</span>
+                        <br />
+                        <span className="title-red">Quiz Club</span>
+                    </h1>
+                    <div className="hero-motto-wrap-centered">
+                        <p className="hero-motto-text">
+                            <Typewriter text="Knowledge Through out The World." speed={70} />
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Key Statistics */}
+      <section className="section-stats" id="explore">
+          <div className="container">
+              <div className="stats-3d-grid">
+                  <div className="stat-3d-card reveal-fade up">
+                      <div className="stat-content">
+                          <h2 className="counter-wrap"><span className="counter">43</span></h2>
+                          <p>Years of Legacy</p>
+                      </div>
+                  </div>
+                  <div className="stat-3d-card reveal-fade up delay-1">
+                      <div className="stat-content">
+                          <h2 className="counter-wrap"><span className="counter">90</span>+</h2>
+                          <p>Active Members</p>
+                      </div>
+                  </div>
+                  <div className="stat-3d-card reveal-fade up delay-2">
+                      <div className="stat-content">
+                          <h2 className="counter-wrap"><span className="counter">50</span>+</h2>
+                          <p>Competitions Won</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* Minimalist Features */}
+      <section id="explore" className="section-clean">
+          <div className="container">
+              <div className="section-header reveal-fade">
+                  <h2 className="section-title">The Standard of Excellence</h2>
+              </div>
+              
+              <div className="grid-clean">
+                  <div className="card-clean reveal-fade up">
+                      <div className="card-line"></div>
+                      <div className="card-number">01</div>
+                      <h3>Intellectual Mastery</h3>
+                      <p>Going beyond textbooks. We train the sharpest minds to conquer challenges, provoke thought, and continuously expand their intellectual horizons.</p>
+                  </div>
+                  
+                  <div className="card-clean reveal-fade up delay-1">
+                      <div className="card-line"></div>
+                      <div className="card-number">02</div>
+                      <h3>Championship Legacy</h3>
+                      <p>From inter-school battles to national championships, we proudly represent our college, dominating the island&apos;s most prestigious quiz arenas.</p>
+                  </div>
+                  
+                  <div className="card-clean reveal-fade up delay-2">
+                      <div className="card-line"></div>
+                      <div className="card-number">03</div>
+                      <h3>Elite Community</h3>
+                      <p>More than just a club. We foster a collaborative, distraction-free environment where passionate learners share knowledge and grow together.</p>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* Upcoming Events (Neon/Glass Timeline) */}
+      {showUpcomingBattles && (
+        <section className="section-events">
+            <div className="container">
+                <div className="section-header reveal-fade text-center">
+                    <h2 className="section-title">Upcoming Battles</h2>
+                </div>
+                
+                <div className="competitions-grid">
+                    {starredCompetitions.map((comp, index) => (
+                      <div key={comp.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
+                          <div className="comp-img-wrapper">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img 
+                                src={comp.image || '/comp1.jpg'} 
+                                alt={stripStyledText(comp.title)} 
+                                className="comp-img" 
+                                style={{ objectFit: 'cover' }}
+                              />
+                          </div>
+                          <div className="comp-info">
+                              <h3 className="comp-title" style={{ fontSize: '1.25rem' }}>
+                                <RenderStyledText text={comp.title} />
+                              </h3>
+                              <div className="comp-date-wrapper">
+                                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                  {comp.eventDate || comp.date}
+                              </div>
+                              {comp.shortDesc && (
+                                <div className="comp-date-wrapper" style={{ fontSize: '0.85rem', color: '#64748b', padding: '0 1rem', margin: '0.35rem 0', lineHeight: '1.4' }}>
+                                  <RenderStyledText text={comp.shortDesc} />
+                                </div>
+                              )}
+                              <div className="comp-divider"></div>
+                              <div style={{ padding: '0 1rem', width: '100%' }}>
+                                <Link href={`/competitions/${encodeURIComponent(comp.slug.trim())}`} className="comp-btn-modern" style={{ textAlign: 'center', display: 'block' }}>
+                                  View Details &rarr;
+                                </Link>
+                              </div>
+                          </div>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="text-center mt-4">
+                    <Link href="/competitions" className="btn-outline-red">Explore All Competitions</Link>
+                </div>
+            </div>
+        </section>
+      )}
+
+      {/* Featured Achievements */}
+      <section className="section-achievements-preview">
+          <div className="container">
+              <div className="section-header reveal-fade text-center">
+                  <h2 className="section-title">Hall of Fame</h2>
+              </div>
+              <div className="competitions-grid">
+                  {displayAchievements.map((achievement, index) => (
+                    <div key={achievement.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
+                        <div className="comp-img-wrapper">
+                            <img src={achievement.image} alt={stripStyledText(achievement.title)} className="comp-img" style={{ objectFit: achievement.image.includes('logo') ? 'contain' : 'cover', padding: achievement.image.includes('logo') ? '2rem' : '0' }} />
+                        </div>
+                        <div className="comp-info">
+                            <h3 className="comp-title" style={{ fontSize: '1.25rem' }}><RenderStyledText text={achievement.title} /> (<RenderStyledText text={achievement.year} />)</h3>
+                            <div className="comp-date-wrapper" style={{ fontSize: '0.95rem', lineHeight: '1.5', color: '#64748b', padding: '0 1rem', flex: 1 }}>
+                                <RenderStyledText text={achievement.shortDesc} />
+                            </div>
+                            <div className="comp-divider"></div>
+                            <Link href={`/achievements/${achievement.slug}`} className="comp-btn-modern">Read More &rarr;</Link>
+                        </div>
+                    </div>
+                  ))}
+              </div>
+              <div className="text-center" style={{ marginTop: '3rem' }}>
+                  <Link href="/achievements" className="btn-outline-red">See All Victories</Link>
+              </div>
+          </div>
+      </section>
+
+      {/* Featured Projects */}
+      <section className="section-achievements-preview">
+          <div className="container">
+              <div className="section-header reveal-fade text-center" style={{ marginBottom: '4rem' }}>
+                  <h2 className="section-title">Our Projects</h2>
+                  <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '1rem' }}>Discover the initiatives driven by our society.</p>
+              </div>
+              <div className="competitions-grid">
+                  {displayProjects.map((project, index) => (
+                    <div key={project.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
+                        <div className="comp-img-wrapper">
+                            <img src={project.image} alt={stripStyledText(project.title)} className="comp-img" style={{ objectFit: project.image.includes('logo') ? 'contain' : 'cover', padding: project.image.includes('logo') ? '2rem' : '0' }} />
+                        </div>
+                        <div className="comp-info">
+                            <h3 className="comp-title" style={{ fontSize: '1.25rem' }}><RenderStyledText text={project.title} /></h3>
+                            <div className="comp-date-wrapper" style={{ fontSize: '0.95rem', lineHeight: '1.5', color: '#64748b', padding: '0 1rem', flex: 1 }}>
+                                <RenderStyledText text={project.shortDesc} />
+                            </div>
+                            <div className="comp-divider"></div>
+                            <Link href={`/projects/${project.slug}`} className="comp-btn-modern">Read More &rarr;</Link>
+                        </div>
+                    </div>
+                  ))}
+              </div>
+              <div className="text-center" style={{ marginTop: '3rem' }}>
+                  <Link href="/projects" className="btn-outline-red">Explore All Projects</Link>
+              </div>
+          </div>
+      </section>
+
+      {/* Gallery Sneak Peek (3D Carousel Mini) */}
+      <section className="section-gallery-preview" style={{ paddingBottom: '10rem' }}>
+          <div className="container text-center">
+              <div className="section-header reveal-fade">
+                  <h2 className="section-title">Moments of Glory</h2>
+              </div>
+              
+              <div className="gallery-wrapper reveal-fade up is-visible" style={{ transform: 'scale(0.7)', margin: '-2rem 0' }}>
+                  <img src="/bar.png" alt="NCQC Center Logo" className="gallery-center-logo" />
+                  <div className="gallery-3d-container">
+                      <div className="gallery-spinner">
+                          {heroImages.slice(0, 6).map((img, index) => (
+                            <div key={index} className="gallery-item" style={{ '--i': index + 1 } as React.CSSProperties}>
+                              <img src={img} alt={`Gallery ${index}`} />
+                            </div>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+              
+              <Link href="/gallery" className="btn-outline-red" style={{ marginTop: '1rem', position: 'relative', zIndex: 20 }}>Enter 3D Gallery</Link>
+          </div>
+      </section>
+
+      {/* Elegant Call to Action */}
+      <section id="join" className="section-red">
+          <div className="container">
+              <div className="cta-minimal reveal-fade up">
+                  <h2>Ready to elevate?</h2>
+                  <p>Request an invitation to join the society.</p>
+                  <form className="minimal-form">
+                      <input type="email" placeholder="Enter your email address" required />
+                      <button type="submit" className="btn-white">Request Invite</button>
+                  </form>
+              </div>
+          </div>
+      </section>
+    </>
   );
 }

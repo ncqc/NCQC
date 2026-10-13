@@ -1,0 +1,47 @@
+import Link from 'next/link';
+import { getProjectsData } from '@/data/projects';
+import RenderStyledText from '@/components/RenderStyledText';
+import { stripStyledText } from '@/utils/styledText';
+
+export default async function ProjectsPage() {
+  const projectsData = await getProjectsData();
+  
+  return (
+    <section className="about-hero" style={{ paddingTop: '15rem' }}>
+      <div className="container">
+        <div className="reveal-text">
+          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Our Projects</h1>
+        </div>
+        <div className="about-content reveal-fade delay-1 is-visible">
+          <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>
+            Innovative initiatives to elevate the quizzing standard in Sri Lanka.
+          </p>
+          
+          <h2 className="section-subtitle">Flagship Events</h2>
+          
+          <div className="competitions-grid">
+            {projectsData.map((project) => (
+              <div key={project.slug} className="comp-card reveal-fade up is-visible">
+                <div className="comp-img-wrapper">
+                  <img src={project.image} alt={stripStyledText(project.title)} className="comp-img" />
+                </div>
+                <div className="comp-info">
+                  <h3 className="comp-title" style={{ fontSize: '1.25rem' }}>
+                    <RenderStyledText text={project.title} />
+                  </h3>
+                  <div className="comp-date-wrapper" style={{ fontSize: '0.95rem', lineHeight: '1.5', color: '#64748b', padding: '0 1rem', flex: 1 }}>
+                    <RenderStyledText text={project.shortDesc} />
+                  </div>
+                  <div className="comp-divider"></div>
+                  <Link href={`/projects/${project.slug}`} className="comp-btn-modern">
+                    Read More &rarr;
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
