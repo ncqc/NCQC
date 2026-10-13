@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Competition, competitionsData } from '@/data/competitions';
-import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 import DateTimePickerModal from '@/components/DateTimePickerModal';
 import StyledFieldEditor from '@/components/StyledFieldEditor';
@@ -195,28 +194,28 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
         console.warn('Failed to load settings:', err);
       }
 
-      // 1. Try fetching from Supabase first
+      // 1. Try fetching from Competitions API
       const decodedParam = decodeURIComponent(resolvedParams.slug || '').trim().toLowerCase();
       try {
-        const { data, error } = await supabase
-          .from('competition')
-          .select('*');
+        const compRes = await fetch('/api/competitions');
+        const compJson = await compRes.json();
 
-        if (!error && data && data.length > 0) {
-          const others = (data as Competition[]).filter(c => {
+        if (compJson.success && compJson.data && compJson.data.length > 0) {
+          const compList = compJson.data as Competition[];
+          const others = compList.filter(c => {
             const cDec = decodeURIComponent(c.slug || '').trim().toLowerCase();
             return cDec !== decodedParam && starredList.includes(c.slug);
           });
           setOtherStarredCount(others.length);
 
-          const match = (data as Competition[]).find((c) => {
+          const match = compList.find((c) => {
             const cDecoded = decodeURIComponent(c.slug || '').trim().toLowerCase();
             return cDecoded === decodedParam || c.slug === resolvedParams.slug || (c.slug && c.slug.trim() === resolvedParams.slug.trim());
           });
           if (match) loadedData = match;
         }
-      } catch (sbErr) {
-        console.warn('Supabase fetch failed, trying local fallback:', sbErr);
+      } catch (apiErr) {
+        console.warn('Competitions API fetch failed, trying local fallback:', apiErr);
       }
 
       // 2. Local fallback if not found in Supabase
@@ -315,22 +314,7 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
     setIsSaving(true);
     const cleanComp = { ...competition, slug: (competition.slug || '').trim() };
     try {
-      // 1. Try saving directly to Supabase table
-      let directSbError = null;
-      try {
-        const { isStarred: _unusedStar, ...compForSupabase } = cleanComp;
-        const { error: sbError } = await supabase
-          .from('competition')
-          .upsert(compForSupabase, { onConflict: 'slug' });
-        if (sbError) {
-          console.warn('Supabase upsert notice:', sbError.message);
-          directSbError = sbError.message;
-        }
-      } catch (sbErr) {
-        console.warn('Supabase direct update error:', sbErr);
-      }
-
-      // 2. Also save via API route for local persistence / file sync
+      // Save via server API route (handles both Supabase and server sync securely)
       const res = await fetch('/api/competitions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -343,7 +327,7 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
       }
 
       setCompetition(cleanComp);
-      if (resData.supabaseNotice || directSbError) {
+      if (resData.supabaseNotice) {
         alert('Competition saved successfully!\n\nNote for Database: If you want changes to reflect in your Supabase Studio table, please click "2 RLS policies" in Supabase and Disable RLS.');
       } else {
         alert('Competition changes saved successfully!');

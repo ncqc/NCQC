@@ -9,6 +9,7 @@ import { getSiteSettings } from '@/data/settings';
 function generateCompetitionsFileContent(list: Competition[]) {
   return `import { supabase } from '@/lib/supabase';
 import { getSiteSettings } from '@/data/settings';
+import { maskImageUrl } from '@/utils/media';
 
 export interface Competition {
   slug: string;
@@ -47,25 +48,28 @@ export async function getCompetitionsData(): Promise<Competition[]> {
     const { data, error } = await supabase
       .from('competition')
       .select('*')
+      .neq('slug', '__site_settings__')
       .order('created_at', { ascending: false });
 
     if (!error && data && data.length > 0) {
       return (data as Competition[]).map(c => ({
         ...c,
+        image: maskImageUrl(c.image),
         isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
       }));
     }
   } catch (e) {
     console.error('Supabase fetch error for competitions, using fallback:', e);
   }
-  return competitionsData.map(c => ({
+  return competitionsData.filter(c => c.slug !== '__site_settings__').map(c => ({
     ...c,
+    image: maskImageUrl(c.image),
     isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
   }));
 }
 
 export async function getCompetition(slug: string): Promise<Competition | null> {
-  if (!slug) return null;
+  if (!slug || slug === '__site_settings__') return null;
   const decoded = decodeURIComponent(slug).trim().toLowerCase();
   const slugified = decoded.replace(/\\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
   const settings = getSiteSettings();
@@ -74,7 +78,8 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
   try {
     const { data, error } = await supabase
       .from('competition')
-      .select('*');
+      .select('*')
+      .neq('slug', '__site_settings__');
 
     if (!error && data && data.length > 0) {
       const match = (data as Competition[]).find((c) => {
@@ -85,6 +90,7 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
       if (match) {
         return {
           ...match,
+          image: maskImageUrl(match.image),
           isStarred: starredSlugs.has(match.slug) || (match.isStarred === true)
         };
       }
@@ -101,6 +107,7 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
   if (!fallback) return null;
   return {
     ...fallback,
+    image: maskImageUrl(fallback.image),
     isStarred: starredSlugs.has(fallback.slug) || (fallback.isStarred === true)
   };
 }

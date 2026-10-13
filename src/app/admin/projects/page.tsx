@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import { Project } from '@/data/projects';
 import { useRouter } from 'next/navigation';
 import RenderStyledText from '@/components/RenderStyledText';
@@ -18,12 +17,15 @@ export default function AdminProjects() {
   }, []);
 
   const fetchProjects = async () => {
-    const { data, error } = await supabase
-      .from('project')
-      .select('*')
-      .order('title', { ascending: true });
-    
-    if (data) setProjects(data as Project[]);
+    try {
+      const res = await fetch('/api/projects');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProjects(json.data as Project[]);
+      }
+    } catch (e) {
+      console.warn('Failed to load projects:', e);
+    }
     setLoading(false);
   };
 
@@ -35,25 +37,44 @@ export default function AdminProjects() {
       type: 'Event',
       frequency: 'Annual',
       shortDesc: 'A brief description of this project.',
-      image: '/comp1.jpg',
+      image: '/bar.png',
       contentHtml: '<h1>New Project</h1><p>Start writing here...</p>',
     };
 
-    const { error } = await supabase.from('project').insert(newProject);
-    if (!error) {
-      router.push(`/admin/projects/${newSlug}`);
-    } else {
-      console.error('Insert error:', error);
-      alert(`Failed to create new project: ${error.message || error.details || 'Unknown error'}`);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProject)
+      });
+      const data = await res.json();
+      if (data.success) {
+        router.push(`/admin/projects/${newSlug}`);
+      } else {
+        alert(`Failed to create new project: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      console.error('Insert error:', err);
+      alert(`Failed to create new project: ${err.message || 'Error'}`);
     }
   };
 
   const handleDelete = async (slug: string) => {
     if (!confirm('Are you sure you want to delete this project?')) return;
-    const { error } = await supabase.from('project').delete().eq('slug', slug);
-    if (!error) {
-      fetchProjects();
-      router.refresh();
+    try {
+      const res = await fetch(`/api/projects?slug=${encodeURIComponent(slug)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchProjects();
+        router.refresh();
+      } else {
+        alert(`Failed to delete: ${data.error || 'Error'}`);
+      }
+    } catch (e: any) {
+      console.error('Delete error:', e);
+      alert(`Delete error: ${e.message}`);
     }
   };
 
@@ -90,8 +111,13 @@ export default function AdminProjects() {
                   onClick={async () => {
                     try {
                       const newStatus = !proj.isStarred;
-                      const { error } = await supabase.from('project').update({ isStarred: newStatus }).eq('slug', proj.slug);
-                      if (error) throw error;
+                      const res = await fetch('/api/projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...proj, isStarred: newStatus })
+                      });
+                      const data = await res.json();
+                      if (!data.success) throw new Error(data.error || 'Failed');
                       setProjects(projects.map(p => p.slug === proj.slug ? { ...p, isStarred: newStatus } : p));
                       router.refresh();
                     } catch (err) {

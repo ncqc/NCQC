@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { Project } from '@/data/projects';
 import StyledFieldEditor from '@/components/StyledFieldEditor';
 
@@ -54,14 +53,11 @@ export default function AdminProjectEditor({ params }: { params: Promise<{ slug:
 
   useEffect(() => {
     params.then(async (resolvedParams) => {
-      const { data, error } = await supabase
-        .from('project')
-        .select('*')
-        .eq('slug', resolvedParams.slug)
-        .single();
+      const res = await fetch(`/api/projects?slug=${encodeURIComponent(resolvedParams.slug)}`);
+      const json = await res.json();
         
-      if (data) {
-        setProject(data as Project);
+      if (json.success && json.data) {
+        setProject(json.data as Project);
       } else {
         setError('Project not found');
       }
@@ -95,12 +91,13 @@ export default function AdminProjectEditor({ params }: { params: Promise<{ slug:
     setIsSaving(true);
     try {
       const { id, ...dataToSave } = project as any;
-      const { error } = await supabase
-        .from('project')
-        .update(dataToSave)
-        .eq('slug', project.slug);
-        
-      if (error) throw error;
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSave)
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed to save');
       alert('Changes saved successfully!');
       router.refresh();
     } catch (err) {

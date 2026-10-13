@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { maskImageUrl } from '@/utils/media';
 
 export interface Album {
   slug: string;
@@ -14,11 +15,15 @@ export async function getGalleryAlbums(): Promise<Album[]> {
     .select('*')
     .order('date', { ascending: false });
     
-  if (error) {
-    console.error('Error fetching gallery albums:', error);
+  if (error || !data) {
+    if (error) console.error('Error fetching gallery albums:', error);
     return [];
   }
-  return data as Album[];
+  return (data as Album[]).map(a => ({
+    ...a,
+    coverImage: maskImageUrl(a.coverImage),
+    photos: (a.photos || []).map(maskImageUrl),
+  }));
 }
 
 export async function getAlbum(slug: string): Promise<Album | null> {
@@ -28,11 +33,15 @@ export async function getAlbum(slug: string): Promise<Album | null> {
     .eq('slug', slug)
     .single();
     
-  if (error) {
-    console.error('Error fetching album:', error);
+  if (error || !data) {
+    if (error) console.error('Error fetching album:', error);
     return null;
   }
-  return data as Album;
+  return {
+    ...(data as Album),
+    coverImage: maskImageUrl(data.coverImage),
+    photos: ((data as Album).photos || []).map(maskImageUrl),
+  };
 }
 
 export async function getGalleryHeroImages(): Promise<string[]> {
@@ -42,7 +51,7 @@ export async function getGalleryHeroImages(): Promise<string[]> {
     .eq('id', 1)
     .single();
     
-  if (error || !data) {
+  if (error || !data || !data.images) {
     // Default images if nothing is set in DB yet
     return [
       "https://picsum.photos/400/500?random=11",
@@ -53,5 +62,5 @@ export async function getGalleryHeroImages(): Promise<string[]> {
       "https://picsum.photos/400/500?random=16"
     ];
   }
-  return data.images as string[];
+  return (data.images as string[]).map(maskImageUrl);
 }

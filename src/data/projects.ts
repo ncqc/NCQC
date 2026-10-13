@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { maskImageUrl } from '@/utils/media';
 
 export interface Project {
   slug: string;
@@ -20,12 +21,15 @@ export async function getProjectsData(): Promise<Project[]> {
     .select('*')
     .order('title', { ascending: true });
     
-  if (error) {
-    console.error('Error fetching projects:', error);
-    return [];
+  if (error || !data) {
+    if (error) console.error('Error fetching projects:', error);
+    return projectsData.map(p => ({ ...p, image: maskImageUrl(p.image) }));
   }
   
-  return data as Project[];
+  return (data as Project[]).map(p => ({
+    ...p,
+    image: maskImageUrl(p.image)
+  }));
 }
 
 export async function getProject(slug: string): Promise<Project | null> {
@@ -35,10 +39,14 @@ export async function getProject(slug: string): Promise<Project | null> {
     .eq('slug', slug)
     .single();
     
-  if (error) {
-    console.error('Error fetching project:', error);
-    return null;
+  if (error || !data) {
+    if (error) console.error('Error fetching project:', error);
+    const local = projectsData.find(p => p.slug === slug);
+    return local ? { ...local, image: maskImageUrl(local.image) } : null;
   }
   
-  return data as Project;
+  return {
+    ...(data as Project),
+    image: maskImageUrl(data.image)
+  };
 }

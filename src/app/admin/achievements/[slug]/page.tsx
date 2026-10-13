@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Achievement } from '@/data/achievements';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import StyledFieldEditor from '@/components/StyledFieldEditor';
@@ -109,13 +108,11 @@ export default function AchievementVisualEditor({ params }: { params: Promise<{ 
 
   useEffect(() => {
     params.then(async (resolvedParams) => {
-      const { data, error } = await supabase
-        .from('achievement')
-        .select('*')
-        .eq('slug', resolvedParams.slug)
-        .single();
+      const res = await fetch(`/api/achievements?slug=${encodeURIComponent(resolvedParams.slug)}`);
+      const json = await res.json();
         
-      if (data) {
+      if (json.success && json.data) {
+        const data = json.data;
         // Initialize sidebarWidget if it doesn't exist
         const initData = { ...data };
         if (!initData.sidebarWidget) {
@@ -181,12 +178,14 @@ export default function AchievementVisualEditor({ params }: { params: Promise<{ 
     setIsSaving(true);
     try {
       const { id, sidebarWidget, ...dataToSave } = achievement as any;
-      const { error } = await supabase
-        .from('achievement')
-        .update(dataToSave)
-        .eq('slug', achievement.slug);
+      const res = await fetch('/api/achievements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSave)
+      });
+      const json = await res.json();
         
-      if (error) throw error;
+      if (!json.success) throw new Error(json.error || 'Failed to save');
       alert('Changes saved successfully!');
       router.refresh();
     } catch (err) {
@@ -204,17 +203,13 @@ export default function AchievementVisualEditor({ params }: { params: Promise<{ 
     if (checked) {
       // Check how many are currently featured
       try {
-        const { count, error } = await supabase
-          .from('achievement')
-          .select('*', { count: 'exact', head: true })
-          .eq('isFeatured', true);
+        const res = await fetch('/api/achievements');
+        const json = await res.json();
+        const list: Achievement[] = json.success && json.data ? json.data : [];
+        const count = list.filter(a => a.isFeatured && a.slug !== achievement.slug).length;
           
-        if (error) throw error;
-        
         // If there are already 3 or more (and this one isn't one of them yet), block it.
-        // Wait, if it's already featured, checked will be true but we wouldn't be toggling it to true again,
-        // but just to be safe:
-        if (count && count >= 3 && !achievement.isFeatured) {
+        if (count >= 3 && !achievement.isFeatured) {
           alert('You can only feature a maximum of 3 achievements on the Home Page! Please un-feature another one first.');
           return; // Do not update
         }

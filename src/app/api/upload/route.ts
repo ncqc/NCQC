@@ -33,13 +33,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const { data: urlData } = supabase.storage
-      .from('images')
-      .getPublicUrl(fileName);
+    // Return masked media proxy URL so no Supabase domain is ever exposed to client
+    const maskedUrl = `/api/media/images/${fileName}`;
 
     return NextResponse.json({
       success: true,
-      url: urlData.publicUrl,
+      url: maskedUrl,
       fileName,
     });
   } catch (error: any) {

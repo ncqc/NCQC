@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Achievement } from '@/data/achievements';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
@@ -9,11 +8,19 @@ import { stripStyledText } from '@/utils/styledText';
 export default function AchievementsAdminGrid() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
 
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('achievement').select('*').order('year', { ascending: false });
-      if (data) setAchievements(data as Achievement[]);
+  const load = async () => {
+    try {
+      const res = await fetch('/api/achievements');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setAchievements(json.data as Achievement[]);
+      }
+    } catch (e) {
+      console.warn('Failed to load achievements:', e);
     }
+  };
+
+  useEffect(() => {
     load();
   }, []);
 
@@ -30,23 +37,22 @@ export default function AchievementsAdminGrid() {
       year: new Date().getFullYear().toString(),
       shortDesc: 'Click edit to change this short description.',
       fullDesc: ['Click edit to change this full description paragraph.'],
-      image: '/logo.png'
+      image: '/bar.png'
     };
 
-    const { id, ...dataToInsert } = newAch as any;
-    
     try {
-      const { error } = await supabase
-        .from('achievement')
-        .insert({ ...dataToInsert, slug: newSlug });
-        
-      if (error) throw error;
+      const res = await fetch('/api/achievements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAch)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create');
       
-      // Redirect to the visual editor for this new item
       router.push(`/admin/achievements/${newSlug}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to create new achievement');
+      alert('Failed to create new achievement: ' + (err.message || 'Error'));
       setIsAdding(false);
     }
   };
@@ -55,17 +61,17 @@ export default function AchievementsAdminGrid() {
     if (!confirm('Are you sure you want to delete this achievement?')) return;
     
     try {
-      const { error } = await supabase
-        .from('achievement')
-        .delete()
-        .eq('slug', slug);
-        
-      if (error) throw error;
+      const res = await fetch(`/api/achievements?slug=${encodeURIComponent(slug)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to delete');
+
       setAchievements(achievements.filter(a => a.slug !== slug));
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete achievement');
+      alert('Failed to delete achievement: ' + (err.message || 'Error'));
     }
   };
 

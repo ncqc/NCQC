@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Album } from '@/data/gallery';
 import Link from 'next/link';
 
@@ -11,27 +10,20 @@ export default function GalleryAdminGrid() {
   const [isSavingHero, setIsSavingHero] = useState(false);
   const router = require('next/navigation').useRouter();
 
-  useEffect(() => {
-    async function load() {
-      // Load Albums
-      const { data: albumData } = await supabase.from('gallery_album').select('*').order('date', { ascending: false });
-      if (albumData) setAlbums(albumData as Album[]);
-
-      // Load Hero Images
-      const { data: heroData } = await supabase.from('gallery_hero').select('*').eq('id', 1).single();
-      if (heroData && heroData.images) {
-        setHeroImages(heroData.images as string[]);
-      } else {
-        setHeroImages([
-          "https://picsum.photos/400/500?random=11",
-          "https://picsum.photos/400/500?random=12",
-          "https://picsum.photos/400/500?random=13",
-          "https://picsum.photos/400/500?random=14",
-          "https://picsum.photos/400/500?random=15",
-          "https://picsum.photos/400/500?random=16"
-        ]);
+  const load = async () => {
+    try {
+      const res = await fetch('/api/gallery');
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (json.data.albums) setAlbums(json.data.albums as Album[]);
+        if (json.data.heroImages) setHeroImages(json.data.heroImages as string[]);
       }
+    } catch (e) {
+      console.warn('Failed to load gallery data:', e);
     }
+  };
+
+  useEffect(() => {
     load();
   }, []);
 
@@ -42,17 +34,22 @@ export default function GalleryAdminGrid() {
       slug: newSlug,
       title: 'New Gallery Album',
       date: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      coverImage: '/logo.png',
+      coverImage: '/bar.png',
       photos: []
     };
 
     try {
-      const { error } = await supabase.from('gallery_album').insert(newAlbum);
-      if (error) throw error;
+      const res = await fetch('/api/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ album: newAlbum })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create');
       router.push(`/admin/gallery/${newSlug}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to create new album');
+      alert('Failed to create new album: ' + (err.message || 'Error'));
       setIsAdding(false);
     }
   };
@@ -60,26 +57,34 @@ export default function GalleryAdminGrid() {
   const handleDeleteAlbum = async (slug: string) => {
     if (!confirm('Are you sure you want to delete this album?')) return;
     try {
-      const { error } = await supabase.from('gallery_album').delete().eq('slug', slug);
-      if (error) throw error;
+      const res = await fetch(`/api/gallery?slug=${encodeURIComponent(slug)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to delete');
       setAlbums(albums.filter(a => a.slug !== slug));
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete album');
+      alert('Failed to delete album: ' + (err.message || 'Error'));
     }
   };
 
   const handleSaveHeroImages = async () => {
     setIsSavingHero(true);
     try {
-      const { error } = await supabase.from('gallery_hero').upsert({ id: 1, images: heroImages });
-      if (error) throw error;
+      const res = await fetch('/api/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'hero', images: heroImages })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to save');
       alert('Hero images saved successfully!');
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to save hero images');
+      alert('Failed to save hero images: ' + (err.message || 'Error'));
     }
     setIsSavingHero(false);
   };

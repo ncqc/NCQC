@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { Album } from '@/data/gallery';
 import Link from 'next/link';
 
@@ -18,14 +17,11 @@ export default function GalleryAlbumEditor({ params }: { params: Promise<{ slug:
 
   useEffect(() => {
     params.then(async (resolvedParams) => {
-      const { data, error } = await supabase
-        .from('gallery_album')
-        .select('*')
-        .eq('slug', resolvedParams.slug)
-        .single();
+      const res = await fetch(`/api/gallery?slug=${encodeURIComponent(resolvedParams.slug)}`);
+      const json = await res.json();
         
-      if (data) {
-        setAlbum(data as Album);
+      if (json.success && json.data) {
+        setAlbum(json.data as Album);
       } else {
         setError('Album not found');
       }
@@ -39,12 +35,13 @@ export default function GalleryAlbumEditor({ params }: { params: Promise<{ slug:
     if (!album) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('gallery_album')
-        .update(album)
-        .eq('slug', album.slug);
-        
-      if (error) throw error;
+      const res = await fetch('/api/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ album })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to save');
       alert('Album saved successfully!');
       router.refresh();
     } catch (err) {

@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { competitionsData, Competition } from '@/data/competitions';
-import { supabase } from '@/lib/supabase';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
@@ -30,14 +29,10 @@ export default function CompetitionsAdmin() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('competition')
-        .select('*')
-        .neq('slug', '__site_settings__')
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        setCompetitions((data as Competition[]).map(c => ({
+      const compRes = await fetch('/api/competitions');
+      const compData = await compRes.json();
+      if (compData.success && compData.data && compData.data.length > 0) {
+        setCompetitions((compData.data as Competition[]).map(c => ({
           ...c,
           isStarred: currentStarred.includes(c.slug)
         })));
@@ -45,7 +40,7 @@ export default function CompetitionsAdmin() {
         return;
       }
     } catch (err) {
-      console.warn('Supabase fetch notice, falling back:', err);
+      console.warn('Competitions API fetch notice, falling back:', err);
     }
 
     // Fallback to local

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { maskImageUrl } from '@/utils/media';
 
 export interface Achievement {
   slug: string;
@@ -32,12 +33,15 @@ export async function getAchievementsData(): Promise<Achievement[]> {
     .select('*')
     .order('year', { ascending: false });
     
-  if (error) {
-    console.error('Error fetching achievements:', error);
-    return [];
+  if (error || !data) {
+    if (error) console.error('Error fetching achievements:', error);
+    return achievementsData.map(a => ({ ...a, image: maskImageUrl(a.image) }));
   }
   
-  return data as Achievement[];
+  return (data as Achievement[]).map(a => ({
+    ...a,
+    image: maskImageUrl(a.image)
+  }));
 }
 
 export async function getAchievement(slug: string): Promise<Achievement | null> {
@@ -47,10 +51,14 @@ export async function getAchievement(slug: string): Promise<Achievement | null> 
     .eq('slug', slug)
     .single();
     
-  if (error) {
-    console.error('Error fetching achievement:', error);
-    return null;
+  if (error || !data) {
+    if (error) console.error('Error fetching achievement:', error);
+    const local = achievementsData.find(a => a.slug === slug);
+    return local ? { ...local, image: maskImageUrl(local.image) } : null;
   }
   
-  return data as Achievement;
+  return {
+    ...(data as Achievement),
+    image: maskImageUrl(data.image)
+  };
 }
