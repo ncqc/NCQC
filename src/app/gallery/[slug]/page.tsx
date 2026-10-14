@@ -1,7 +1,16 @@
 import { notFound } from 'next/navigation';
-import { getAlbum } from '@/data/gallery';
+import { getAlbum, getGalleryAlbums } from '@/data/gallery';
 import Link from 'next/link';
 import GalleryGrid from '@/components/GalleryGrid';
+
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const albums = await getGalleryAlbums();
+  return albums.map((album) => ({
+    slug: album.slug,
+  }));
+}
 
 export default async function AlbumPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;

@@ -3,6 +3,8 @@ import { getProjectsData } from '@/data/projects';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
+export const revalidate = 60;
+
 export default async function ProjectsPage() {
   const projectsData = await getProjectsData();
   
@@ -33,7 +35,7 @@ export default async function ProjectsPage() {
                     <RenderStyledText text={project.shortDesc} />
                   </div>
                   <div className="comp-divider"></div>
-                  <Link href={`/projects/${project.slug}`} className="comp-btn-modern">
+                  <Link href={`/projects/${project.slug}`} prefetch={true} className="comp-btn-modern">
                     Read More &rarr;
                   </Link>
                 </div>

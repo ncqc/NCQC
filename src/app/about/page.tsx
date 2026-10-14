@@ -1,3 +1,5 @@
+export const revalidate = 60;
+
 export default function AboutPage() {
   return (
     <section className="about-hero" style={{ paddingTop: '15rem' }}>

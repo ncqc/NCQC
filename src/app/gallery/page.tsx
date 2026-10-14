@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getGalleryAlbums, getGalleryHeroImages } from '@/data/gallery';
 
+export const revalidate = 60;
+
 export default async function GalleryPage() {
   const galleryData = await getGalleryAlbums();
   const heroImages = await getGalleryHeroImages();
@@ -37,7 +39,7 @@ export default async function GalleryPage() {
                 <div className="comp-info" style={{ textAlign: 'center' }}>
                   <h3 className="comp-title" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{album.title}</h3>
                   <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.5rem' }}>{album.photos.length} Photos &bull; {album.date}</p>
-                  <Link href={`/gallery/${album.slug}`} className="comp-btn-modern" style={{ display: 'inline-block' }}>
+                  <Link href={`/gallery/${album.slug}`} prefetch={true} className="comp-btn-modern" style={{ display: 'inline-block' }}>
                     View Album &rarr;
                   </Link>
                 </div>

@@ -6,6 +6,8 @@ import { formatPublicHtml } from '@/utils/sanitizeHtml';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
+export const revalidate = 60;
+
 export async function generateStaticParams() {
   const projects = await getProjectsData();
   return projects.map((project) => ({

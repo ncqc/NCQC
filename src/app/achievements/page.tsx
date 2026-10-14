@@ -3,6 +3,8 @@ import { getAchievementsData } from '@/data/achievements';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
+export const revalidate = 60;
+
 export default async function AchievementsPage() {
   const achievementsData = await getAchievementsData();
   
@@ -31,7 +33,7 @@ export default async function AchievementsPage() {
                     <RenderStyledText text={achievement.shortDesc} />
                   </div>
                   <div className="comp-divider"></div>
-                  <Link href={`/achievements/${achievement.slug}`} className="comp-btn-modern">
+                  <Link href={`/achievements/${achievement.slug}`} prefetch={true} className="comp-btn-modern">
                     Read More &rarr;
                   </Link>
                 </div>

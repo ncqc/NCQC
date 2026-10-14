@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Core performance options */
-  cacheComponents: true,
-  partialPrefetching: true,
+  /* Core performance & security options */
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
 

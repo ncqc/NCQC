@@ -8,6 +8,8 @@ import { getSiteSettingsAsync } from '@/data/settings';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
+export const revalidate = 60;
+
 export default async function Home() {
   const achievements = await getAchievementsData();
   const projects = await getProjectsData();
@@ -57,19 +59,19 @@ export default async function Home() {
       <section className="section-stats" id="explore">
           <div className="container">
               <div className="stats-3d-grid">
-                  <div className="stat-3d-card reveal-fade up">
+                  <div className="stat-3d-card reveal-fade up is-visible">
                       <div className="stat-content">
                           <h2 className="counter-wrap"><span className="counter">43</span></h2>
                           <p>Years of Legacy</p>
                       </div>
                   </div>
-                  <div className="stat-3d-card reveal-fade up delay-1">
+                  <div className="stat-3d-card reveal-fade up delay-1 is-visible">
                       <div className="stat-content">
                           <h2 className="counter-wrap"><span className="counter">90</span>+</h2>
                           <p>Active Members</p>
                       </div>
                   </div>
-                  <div className="stat-3d-card reveal-fade up delay-2">
+                  <div className="stat-3d-card reveal-fade up delay-2 is-visible">
                       <div className="stat-content">
                           <h2 className="counter-wrap"><span className="counter">50</span>+</h2>
                           <p>Competitions Won</p>
@@ -82,26 +84,26 @@ export default async function Home() {
       {/* Minimalist Features */}
       <section id="explore" className="section-clean">
           <div className="container">
-              <div className="section-header reveal-fade">
+              <div className="section-header reveal-fade is-visible">
                   <h2 className="section-title">The Standard of Excellence</h2>
               </div>
               
               <div className="grid-clean">
-                  <div className="card-clean reveal-fade up">
+                  <div className="card-clean reveal-fade up is-visible">
                       <div className="card-line"></div>
                       <div className="card-number">01</div>
                       <h3>Intellectual Mastery</h3>
                       <p>Going beyond textbooks. We train the sharpest minds to conquer challenges, provoke thought, and continuously expand their intellectual horizons.</p>
                   </div>
                   
-                  <div className="card-clean reveal-fade up delay-1">
+                  <div className="card-clean reveal-fade up delay-1 is-visible">
                       <div className="card-line"></div>
                       <div className="card-number">02</div>
                       <h3>Championship Legacy</h3>
                       <p>From inter-school battles to national championships, we proudly represent our college, dominating the island&apos;s most prestigious quiz arenas.</p>
                   </div>
                   
-                  <div className="card-clean reveal-fade up delay-2">
+                  <div className="card-clean reveal-fade up delay-2 is-visible">
                       <div className="card-line"></div>
                       <div className="card-number">03</div>
                       <h3>Elite Community</h3>
@@ -115,7 +117,7 @@ export default async function Home() {
       {showUpcomingBattles && (
         <section className="section-events">
             <div className="container">
-                <div className="section-header reveal-fade text-center">
+                <div className="section-header reveal-fade text-center is-visible">
                     <h2 className="section-title">Upcoming Battles</h2>
                 </div>
                 
@@ -146,7 +148,7 @@ export default async function Home() {
                               )}
                               <div className="comp-divider"></div>
                               <div style={{ padding: '0 1rem', width: '100%' }}>
-                                <Link href={`/competitions/${encodeURIComponent(comp.slug.trim())}`} className="comp-btn-modern" style={{ textAlign: 'center', display: 'block' }}>
+                                <Link href={`/competitions/${encodeURIComponent(comp.slug.trim())}`} prefetch={true} className="comp-btn-modern" style={{ textAlign: 'center', display: 'block' }}>
                                   View Details &rarr;
                                 </Link>
                               </div>
@@ -156,7 +158,7 @@ export default async function Home() {
                 </div>
 
                 <div className="text-center mt-4">
-                    <Link href="/competitions" className="btn-outline-red">Explore All Competitions</Link>
+                    <Link href="/competitions" prefetch={true} className="btn-outline-red">Explore All Competitions</Link>
                 </div>
             </div>
         </section>
@@ -165,7 +167,7 @@ export default async function Home() {
       {/* Featured Achievements */}
       <section className="section-achievements-preview">
           <div className="container">
-              <div className="section-header reveal-fade text-center">
+              <div className="section-header reveal-fade text-center is-visible">
                   <h2 className="section-title">Hall of Fame</h2>
               </div>
               <div className="competitions-grid">
@@ -180,13 +182,13 @@ export default async function Home() {
                                 <RenderStyledText text={achievement.shortDesc} />
                             </div>
                             <div className="comp-divider"></div>
-                            <Link href={`/achievements/${achievement.slug}`} className="comp-btn-modern">Read More &rarr;</Link>
+                            <Link href={`/achievements/${achievement.slug}`} prefetch={true} className="comp-btn-modern">Read More &rarr;</Link>
                         </div>
                     </div>
                   ))}
               </div>
               <div className="text-center" style={{ marginTop: '3rem' }}>
-                  <Link href="/achievements" className="btn-outline-red">See All Victories</Link>
+                  <Link href="/achievements" prefetch={true} className="btn-outline-red">See All Victories</Link>
               </div>
           </div>
       </section>
@@ -194,7 +196,7 @@ export default async function Home() {
       {/* Featured Projects */}
       <section className="section-achievements-preview">
           <div className="container">
-              <div className="section-header reveal-fade text-center" style={{ marginBottom: '4rem' }}>
+              <div className="section-header reveal-fade text-center is-visible" style={{ marginBottom: '4rem' }}>
                   <h2 className="section-title">Our Projects</h2>
                   <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '1rem' }}>Discover the initiatives driven by our society.</p>
               </div>
@@ -210,13 +212,13 @@ export default async function Home() {
                                 <RenderStyledText text={project.shortDesc} />
                             </div>
                             <div className="comp-divider"></div>
-                            <Link href={`/projects/${project.slug}`} className="comp-btn-modern">Read More &rarr;</Link>
+                            <Link href={`/projects/${project.slug}`} prefetch={true} className="comp-btn-modern">Read More &rarr;</Link>
                         </div>
                     </div>
                   ))}
               </div>
               <div className="text-center" style={{ marginTop: '3rem' }}>
-                  <Link href="/projects" className="btn-outline-red">Explore All Projects</Link>
+                  <Link href="/projects" prefetch={true} className="btn-outline-red">Explore All Projects</Link>
               </div>
           </div>
       </section>
@@ -224,7 +226,7 @@ export default async function Home() {
       {/* Gallery Sneak Peek (3D Carousel Mini) */}
       <section className="section-gallery-preview" style={{ paddingBottom: '10rem' }}>
           <div className="container text-center">
-              <div className="section-header reveal-fade">
+              <div className="section-header reveal-fade is-visible">
                   <h2 className="section-title">Moments of Glory</h2>
               </div>
               
@@ -241,14 +243,14 @@ export default async function Home() {
                   </div>
               </div>
               
-              <Link href="/gallery" className="btn-outline-red" style={{ marginTop: '1rem', position: 'relative', zIndex: 20 }}>Enter 3D Gallery</Link>
+              <Link href="/gallery" prefetch={true} className="btn-outline-red" style={{ marginTop: '1rem', position: 'relative', zIndex: 20 }}>Enter 3D Gallery</Link>
           </div>
       </section>
 
       {/* Elegant Call to Action */}
       <section id="join" className="section-red">
           <div className="container">
-              <div className="cta-minimal reveal-fade up">
+              <div className="cta-minimal reveal-fade up is-visible">
                   <h2>Ready to elevate?</h2>
                   <p>Request an invitation to join the society.</p>
                   <form className="minimal-form">

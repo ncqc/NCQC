@@ -7,6 +7,8 @@ import 'react-quill-new/dist/quill.snow.css';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
+export const revalidate = 60;
+
 export async function generateStaticParams() {
   const data = await getCompetitionsData();
   return data.map((comp) => ({

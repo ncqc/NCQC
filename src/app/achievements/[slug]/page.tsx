@@ -6,6 +6,15 @@ import { formatPublicHtml } from '@/utils/sanitizeHtml';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const achievements = await getAchievementsData();
+  return achievements.map((achievement) => ({
+    slug: achievement.slug,
+  }));
+}
+
 export default async function AchievementPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   const achievement = await getAchievement(resolvedParams.slug);

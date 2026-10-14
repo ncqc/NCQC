@@ -33,14 +33,14 @@ export default function Navbar() {
           <span></span>
         </div>
         <ul className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
-          <li><Link href="/" className={isActive('/')}>Home</Link></li>
-          <li><Link href="/about" className={isActive('/about')}>About</Link></li>
-          <li><Link href="/team" className={isActive('/team')}>Our Team</Link></li>
-          <li><Link href="/achievements" className={isActive('/achievements')}>Achievements</Link></li>
-          <li><Link href="/projects" className={isActive('/projects') || pathname.startsWith('/projects') ? 'active' : ''}>Projects</Link></li>
-          <li><Link href="/competitions" className={isActive('/competitions')}>Competitions</Link></li>
-          <li><Link href="/gallery" className={isActive('/gallery') || pathname.startsWith('/gallery') ? 'active' : ''}>Gallery</Link></li>
-          <li><Link href="/contact" className={isActive('/contact')}>Contact</Link></li>
+          <li><Link href="/" prefetch={true} className={isActive('/')}>Home</Link></li>
+          <li><Link href="/about" prefetch={true} className={isActive('/about')}>About</Link></li>
+          <li><Link href="/team" prefetch={true} className={isActive('/team')}>Our Team</Link></li>
+          <li><Link href="/achievements" prefetch={true} className={isActive('/achievements')}>Achievements</Link></li>
+          <li><Link href="/projects" prefetch={true} className={isActive('/projects') || pathname.startsWith('/projects') ? 'active' : ''}>Projects</Link></li>
+          <li><Link href="/competitions" prefetch={true} className={isActive('/competitions')}>Competitions</Link></li>
+          <li><Link href="/gallery" prefetch={true} className={isActive('/gallery') || pathname.startsWith('/gallery') ? 'active' : ''}>Gallery</Link></li>
+          <li><Link href="/contact" prefetch={true} className={isActive('/contact')}>Contact</Link></li>
           <li><a href="#join" className="btn-join">Join Exclusive</a></li>
         </ul>
       </div>

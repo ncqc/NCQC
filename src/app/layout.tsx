@@ -48,9 +48,7 @@ export default function RootLayout({
       </head>
       <body className={`${poppins.variable} ${bebasNeue.variable} ${playfairDisplay.variable} ${syncopate.variable} font-sans bg-white text-red-600 antialiased overflow-x-hidden`}>
         <SecurityShield />
-        <Suspense fallback={<main className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</main>}>
-          <LayoutWrapper>{children}</LayoutWrapper>
-        </Suspense>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
