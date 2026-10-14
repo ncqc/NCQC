@@ -40,13 +40,13 @@ export default async function Home() {
                     <img src="/bar.png" alt="Quiz Society Home Logo" className="home-logo-centered" />
                 </div>
                 <div className="hero-content-centered reveal-fade delay-1 is-visible">
-                    <h1 className="hero-title-main">
-                        <span className="title-dark">Nalanda College</span>
+                    <h1 className="hero-title-main" style={{ fontFamily: 'var(--font-the-globe), "TheGlobe", sans-serif' }}>
+                        <span className="title-dark" style={{ fontFamily: 'var(--font-the-globe), "TheGlobe", sans-serif' }}>Nalanda College</span>
                         <br />
-                        <span className="title-red">Quiz Club</span>
+                        <span className="title-red" style={{ fontFamily: 'var(--font-the-globe), "TheGlobe", sans-serif' }}>Quiz Club</span>
                     </h1>
                     <div className="hero-motto-wrap-centered">
-                        <p className="hero-motto-text">
+                        <p className="hero-motto-text" style={{ fontFamily: 'var(--font-bighorn), "BighornItalic", sans-serif' }}>
                             <Typewriter text="Knowledge Through out The World." speed={70} />
                         </p>
                     </div>
@@ -121,7 +121,7 @@ export default async function Home() {
                     <h2 className="section-title">Upcoming Battles</h2>
                 </div>
                 
-                <div className="competitions-grid">
+                <div className={`competitions-grid ${starredCompetitions.length === 1 ? 'single-comp' : ''}`}>
                     {starredCompetitions.map((comp, index) => (
                       <div key={comp.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
                           <div className="comp-img-wrapper">
@@ -170,7 +170,7 @@ export default async function Home() {
               <div className="section-header reveal-fade text-center is-visible">
                   <h2 className="section-title">Hall of Fame</h2>
               </div>
-              <div className="competitions-grid">
+              <div className={`competitions-grid ${displayAchievements.length === 1 ? 'single-comp' : ''}`}>
                   {displayAchievements.map((achievement, index) => (
                     <div key={achievement.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
                         <div className="comp-img-wrapper">
@@ -200,7 +200,7 @@ export default async function Home() {
                   <h2 className="section-title">Our Projects</h2>
                   <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '1rem' }}>Discover the initiatives driven by our society.</p>
               </div>
-              <div className="competitions-grid">
+              <div className={`competitions-grid ${displayProjects.length === 1 ? 'single-comp' : ''}`}>
                   {displayProjects.map((project, index) => (
                     <div key={project.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
                         <div className="comp-img-wrapper">

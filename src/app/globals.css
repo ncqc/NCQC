@@ -1,6 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+    font-family: 'GuberaMono';
+    src: url('/fonts/GuberaMonoDemoRegular-MA6Vv.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'TheGlobe';
+    src: url('/fonts/TheGlobePersonalUseBold-2ORlw.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'BighornItalic';
+    src: url('/fonts/Bighorn%20Italic.otf') format('opentype'), url('/fonts/Bighorn Italic.otf') format('opentype');
+    font-weight: 100 900;
+    font-style: italic;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'SuperMellow';
+    src: url('/fonts/SuperMellowRegular-e90Vg.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'ManlineSlabs';
+    src: url('/fonts/ManlineSlabs-pgPVy.otf') format('opentype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+}
+
 /* ==========================================================================
    PURE MINIMALISM - RED & WHITE ONLY
    ========================================================================== */
@@ -695,7 +736,7 @@ h6 {
 }
 
 .hero-title-main {
-    font-family: var(--font-primary);
+    font-family: var(--font-the-globe), 'TheGlobe', sans-serif !important;
     line-height: 1.15;
     margin: 0;
     text-transform: none;
@@ -707,7 +748,7 @@ h6 {
 }
 
 .title-dark {
-    font-family: var(--font-primary);
+    font-family: var(--font-the-globe), 'TheGlobe', sans-serif !important;
     text-transform: none;
     font-size: clamp(2.5rem, 6vw, 4.5rem);
     font-weight: 800;
@@ -717,7 +758,7 @@ h6 {
 }
 
 .title-red {
-    font-family: var(--font-primary);
+    font-family: var(--font-the-globe), 'TheGlobe', sans-serif !important;
     text-transform: none;
     font-size: clamp(3rem, 7vw, 5.5rem);
     font-weight: 800;
@@ -734,19 +775,19 @@ h6 {
 }
 
 .hero-motto-text {
-    font-family: var(--font-primary);
-    font-size: clamp(1.1rem, 1.8vw, 1.25rem);
+    font-family: var(--font-bighorn), 'BighornItalic', sans-serif !important;
+    font-size: clamp(1.2rem, 2vw, 1.45rem);
     font-weight: 500;
     color: #334155;
     /* Beautiful dark slate gray */
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     line-height: 1.6;
     min-height: 1.5em;
     text-align: center;
     white-space: normal;
     /* Allow wrapping if needed for smaller screens */
     text-wrap: balance;
-    max-width: 700px;
+    max-width: 750px;
 }
 
 .hero-visual {
@@ -1132,7 +1173,7 @@ h6 {
     font-size: clamp(2rem, 10vw, 5rem);
     line-height: 1.1;
     color: var(--black, #111);
-    font-family: var(--font-brutalist);
+    font-family: var(--font-super-mellow), 'SuperMellow', sans-serif !important;
     font-weight: 700;
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -1145,12 +1186,94 @@ h6 {
 }
 
 .lead-text {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: clamp(2rem, 4vw, 3rem);
-    line-height: 1.2;
-    margin: 3rem 0 6rem;
-    max-width: 1000px;
+    font-family: var(--font-gubera-mono), 'GuberaMono', monospace !important;
+    font-style: normal;
+    font-size: clamp(1.25rem, 2.2vw, 1.45rem) !important;
+    font-weight: 700 !important;
+    line-height: 1.6 !important;
+    margin: 0 auto 4rem auto !important;
+    max-width: 850px !important;
+    color: #0f172a !important;
+    letter-spacing: 0.01em;
+}
+
+/* Modern Glassmorphic Pill Badge */
+.lead-pill-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 1.5rem 0 4.5rem 0;
+}
+
+.lead-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(254, 242, 242, 0.88));
+    border: 1px solid rgba(217, 4, 41, 0.22);
+    box-shadow: 0 4px 24px -2px rgba(217, 4, 41, 0.1), 0 2px 8px rgba(0, 0, 0, 0.02);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 0.75rem 2rem;
+    border-radius: 9999px;
+    max-width: 950px;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lead-pill-badge:hover {
+    border-color: rgba(217, 4, 41, 0.4);
+    box-shadow: 0 8px 32px -4px rgba(217, 4, 41, 0.16);
+    transform: translateY(-2px);
+}
+
+.lead-pill-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background-color: #d90429;
+    box-shadow: 0 0 10px rgba(217, 4, 41, 0.8);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.lead-pill-dot::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background-color: rgba(217, 4, 41, 0.25);
+    animation: pulsePill 2s infinite ease-out;
+}
+
+@keyframes pulsePill {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
+}
+
+.lead-pill-text {
+    font-family: var(--font-gubera-mono), 'GuberaMono', monospace !important;
+    font-size: clamp(0.95rem, 1.5vw, 1.15rem) !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    opacity: 0.9 !important;
+    line-height: 1.5 !important;
+    text-align: center !important;
+    letter-spacing: 0.01em !important;
+}
+
+@media (max-width: 768px) {
+    .lead-pill-badge {
+        padding: 0.65rem 1.25rem;
+        border-radius: 20px;
+        gap: 0.6rem;
+    }
+    .lead-pill-text {
+        font-size: 0.95rem;
+    }
 }
 
 .about-grid {
@@ -1192,19 +1315,22 @@ h6 {
 
 /* Team Page */
 .section-subtitle {
-    font-size: 2.5rem;
-    color: var(--red);
-    margin: 4rem 0 3rem;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #111111;
+    margin: 4.5rem 0 2.5rem;
     text-align: center;
     position: relative;
+    letter-spacing: -0.02em;
 }
 
 .section-subtitle::after {
     content: '';
     display: block;
-    width: 60px;
-    height: 2px;
-    background-color: var(--red);
+    width: 48px;
+    height: 3px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #d90429, #ff4d6d);
     margin: 1rem auto 0;
 }
 
@@ -1212,172 +1338,247 @@ h6 {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 4rem 3rem;
+    gap: 3rem 2rem;
+    margin-bottom: 3.5rem;
+    perspective: 1200px;
+}
+
+.team-grid-4 {
+    margin-bottom: 3rem;
+}
+
+.team-grid-3 {
     margin-bottom: 6rem;
 }
 
 .team-member {
-    flex: 0 1 280px;
+    flex: 0 1 265px;
+    max-width: 285px;
+    width: 100%;
     text-align: center;
-    background: #ffffff;
-    border: none;
-    padding: 3rem 2rem;
-    border-radius: 30px;
-    transition: var(--transition-med);
-    /* Premium 3D Claymorphism Effect */
-    box-shadow:
-        15px 15px 35px rgba(217, 4, 41, 0.08),
-        -10px -10px 30px rgba(255, 255, 255, 1),
-        inset 4px 4px 10px rgba(217, 4, 41, 0.05),
-        inset -4px -4px 15px rgba(255, 255, 255, 1);
+    background: linear-gradient(165deg, #ffffff 0%, #fffbfb 45%, #fff2f4 100%);
+    border: 1px solid rgba(217, 4, 41, 0.14);
+    padding: 2.8rem 1.6rem 2.2rem;
+    border-radius: 26px;
     position: relative;
     transform-style: preserve-3d;
+    transform: perspective(1000px) translateZ(0);
+    transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+                box-shadow 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+                border-color 0.45s ease;
+    /* Layered 3D Depth Shadows */
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.02),
+        0 10px 25px -4px rgba(217, 4, 41, 0.08),
+        0 24px 45px -10px rgba(139, 0, 21, 0.10),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95),
+        inset 0 -1px 3px rgba(217, 4, 41, 0.04);
+    cursor: default;
+}
+
+/* 3D Top Specular Light Reflection */
+.team-member::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* 3D Ambient Crimson Underglow */
+.team-member::after {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    bottom: -12px;
+    background: radial-gradient(ellipse at center bottom, rgba(217, 4, 41, 0.22) 0%, transparent 70%);
+    filter: blur(16px);
+    z-index: -1;
+    opacity: 0.55;
+    transition: all 0.45s ease;
+    border-radius: 28px;
+    pointer-events: none;
 }
 
 .team-member:hover {
-    transform: translateY(-10px) scale(1.02);
+    transform: perspective(1000px) translateY(-14px) scale(1.025);
+    border-color: rgba(217, 4, 41, 0.32);
     box-shadow:
-        20px 20px 45px rgba(217, 4, 41, 0.12),
-        -15px -15px 35px rgba(255, 255, 255, 1),
-        inset 4px 4px 10px rgba(217, 4, 41, 0.05),
-        inset -4px -4px 15px rgba(255, 255, 255, 1);
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        0 20px 40px -4px rgba(217, 4, 41, 0.18),
+        0 38px 68px -10px rgba(139, 0, 21, 0.22),
+        inset 0 2px 1px rgba(255, 255, 255, 1),
+        inset 0 -2px 4px rgba(217, 4, 41, 0.08);
 }
 
+.team-member:hover::after {
+    opacity: 1;
+    bottom: -18px;
+    filter: blur(20px);
+    background: radial-gradient(ellipse at center bottom, rgba(217, 4, 41, 0.42) 0%, transparent 70%);
+}
+
+/* 3D Avatar Pedestal / Medallion Placeholder */
 .member-img-placeholder {
-    width: 140px;
-    height: 140px;
-    background: linear-gradient(135deg, rgba(217, 4, 41, 0.03) 0%, rgba(217, 4, 41, 0.15) 100%);
-    border: 2px dashed rgba(217, 4, 41, 0.2);
+    width: 132px;
+    height: 132px;
     border-radius: 50%;
-    margin: 0 auto 2rem;
+    margin: 0 auto 1.8rem;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition-med);
+    background: linear-gradient(145deg, #ffffff 0%, #fff1f3 50%, #ffe4e8 100%);
+    border: 3.5px solid #ffffff;
+    box-shadow:
+        0 8px 22px rgba(217, 4, 41, 0.12),
+        0 2px 6px rgba(0, 0, 0, 0.04),
+        inset 0 2px 6px rgba(255, 255, 255, 0.9),
+        inset 0 -3px 8px rgba(217, 4, 41, 0.14);
+    transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+                box-shadow 0.45s ease,
+                border-color 0.45s ease;
+    font-size: 0;
+    color: transparent;
 }
 
+/* Elegant Executive Silhouette Icon */
+.member-img-placeholder::before {
+    content: '';
+    width: 58px;
+    height: 58px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23d90429"><path opacity="0.15" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>') no-repeat center;
+    background-size: contain;
+    filter: drop-shadow(0 3px 6px rgba(217, 4, 41, 0.22));
+    transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+                filter 0.45s ease;
+    pointer-events: none;
+}
+
+/* Outer Orbit Ring */
 .member-img-placeholder::after {
     content: '';
-    width: 40px;
-    height: 40px;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23D90429" opacity="0.3"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>') no-repeat center;
-    background-size: contain;
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(217, 4, 41, 0.2);
+    box-shadow: 0 0 14px rgba(217, 4, 41, 0.08);
+    transition: all 0.45s ease;
+    pointer-events: none;
 }
 
 .team-member:hover .member-img-placeholder {
-    border-color: var(--red);
-    border-style: solid;
-    transform: translateZ(40px) scale(1.05);
-    box-shadow: 0 15px 25px rgba(217, 4, 41, 0.2);
+    transform: translateZ(32px) scale(1.06);
+    box-shadow:
+        0 16px 30px rgba(217, 4, 41, 0.22),
+        0 4px 10px rgba(0, 0, 0, 0.05),
+        inset 0 2px 6px rgba(255, 255, 255, 1),
+        inset 0 -4px 10px rgba(217, 4, 41, 0.24);
 }
 
+.team-member:hover .member-img-placeholder::before {
+    transform: scale(1.1);
+    filter: drop-shadow(0 6px 12px rgba(217, 4, 41, 0.38));
+}
+
+.team-member:hover .member-img-placeholder::after {
+    inset: -9px;
+    border-color: rgba(217, 4, 41, 0.45);
+    box-shadow: 0 0 22px rgba(217, 4, 41, 0.24);
+}
+
+/* 3D Photo Avatar Container */
 .member-img {
     position: relative;
-    width: 140px;
-    height: 140px;
+    width: 132px;
+    height: 132px;
     border-radius: 50%;
-    margin: 0 auto 2rem;
+    margin: 0 auto 1.8rem;
     background-color: var(--white);
     background-size: cover;
     background-position: center;
-    transition: var(--transition-med);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    border: 3.5px solid #ffffff;
+    box-shadow:
+        0 8px 22px rgba(217, 4, 41, 0.12),
+        0 2px 6px rgba(0, 0, 0, 0.04),
+        inset 0 0 0 1px rgba(217, 4, 41, 0.1);
+    transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+                box-shadow 0.45s ease;
     z-index: 1;
 }
 
 .member-img::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -6px;
     border-radius: 50%;
-    border: 3px solid rgba(217, 4, 41, 0.1);
-    transition: var(--transition-med);
-    z-index: 2;
+    border: 1.5px solid rgba(217, 4, 41, 0.2);
+    box-shadow: 0 0 14px rgba(217, 4, 41, 0.08);
+    transition: all 0.45s ease;
     pointer-events: none;
-}
-
-
-@property --angle {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
-}
-
-.team-member::before,
-.team-member::after {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 33px;
-    background: conic-gradient(from var(--angle), transparent 40%, #03a9f4 70%, #f441a5 100%);
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    animation: rotateNeon 3s linear infinite;
-    pointer-events: none;
-}
-
-/* The crisp inner border */
-.team-member::before {
-    z-index: 10;
-    padding: 3px;
-    -webkit-mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-}
-
-/* The blurred outer glow */
-.team-member::after {
-    z-index: -1;
-    filter: blur(20px);
-}
-
-.team-member:hover::before,
-.team-member:hover::after {
-    opacity: 1;
-}
-
-@keyframes rotateNeon {
-    to {
-        --angle: 360deg;
-    }
 }
 
 .team-member:hover .member-img {
-    transform: translateZ(40px) scale(1.05);
-    box-shadow: 0 15px 25px rgba(217, 4, 41, 0.25);
-    border-color: var(--red);
+    transform: translateZ(32px) scale(1.06);
+    box-shadow:
+        0 16px 30px rgba(217, 4, 41, 0.25),
+        0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
 .team-member:hover .member-img::after {
-    border-color: var(--red);
+    inset: -9px;
+    border-color: rgba(217, 4, 41, 0.45);
+    box-shadow: 0 0 22px rgba(217, 4, 41, 0.25);
 }
 
+/* Member Name - Manline Slabs Font */
 .member-name {
-    font-size: 1.3rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-    color: var(--red-dark);
-    transition: var(--transition-med);
+    font-family: var(--font-manline), 'ManlineSlabs', serif !important;
+    font-size: 1.38rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.85rem;
+    color: #6a000f;
+    transition: transform 0.35s ease, color 0.35s ease, text-shadow 0.35s ease;
 }
 
+.team-member:hover .member-name {
+    color: #d90429;
+    transform: translateZ(22px);
+    text-shadow: 0 4px 14px rgba(217, 4, 41, 0.18);
+}
+
+/* Member Post - 3D Glass Pill Badge */
 .member-post {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--red);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 1.15rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #99001a;
+    background: rgba(217, 4, 41, 0.05);
+    border: 1px solid rgba(217, 4, 41, 0.16);
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    opacity: 0.7;
-    transition: var(--transition-med);
+    letter-spacing: 0.13em;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 2px 4px rgba(217, 4, 41, 0.04);
+    transition: transform 0.35s ease, background 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+    margin: 0 auto;
 }
 
-.team-member:hover .member-name,
 .team-member:hover .member-post {
-    transform: translateZ(25px);
+    background: rgba(217, 4, 41, 0.12);
+    border-color: rgba(217, 4, 41, 0.35);
+    color: #d90429;
+    box-shadow: 0 4px 12px rgba(217, 4, 41, 0.12);
+    transform: translateZ(16px);
 }
 
 /* Footer */
@@ -1948,25 +2149,17 @@ h6 {
 
 /* Premium 3D Competition Cards */
 .competitions-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2.5rem 2rem;
     margin-bottom: 5rem;
 }
 
-@media (max-width: 992px) {
-    .competitions-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
-    .competitions-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 .comp-card {
+    flex: 0 1 360px;
+    max-width: 390px;
+    width: 100%;
     background: #ffffff;
     border-radius: 16px;
     overflow: hidden;
@@ -1976,6 +2169,23 @@ h6 {
     flex-direction: column;
     position: relative;
     border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.competitions-grid.single-comp .comp-card,
+.competitions-grid:has(> :only-child) .comp-card {
+    flex-basis: 420px;
+    max-width: 440px;
+}
+
+@media (max-width: 768px) {
+    .competitions-grid {
+        gap: 2rem 1rem;
+    }
+
+    .comp-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
 }
 
 .comp-card:hover {

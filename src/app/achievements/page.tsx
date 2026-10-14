@@ -12,12 +12,15 @@ export default async function AchievementsPage() {
     <section className="about-hero" style={{ paddingTop: '15rem', paddingBottom: '5rem' }}>
       <div className="container">
         <div className="reveal-text">
-          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Our Achievements</h1>
+          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif' }}>Our Achievements</h1>
         </div>
         <div className="about-content reveal-fade delay-1 is-visible">
-          <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>
-            A legacy of excellence forged through knowledge, strategy, and unyielding determination.
-          </p>
+          <div className="lead-pill-wrap">
+            <div className="lead-pill-badge">
+              <span className="lead-pill-dot"></span>
+              <span className="lead-pill-text" style={{ color: '#64748b' }}>A legacy of excellence forged through knowledge, strategy, and unyielding determination.</span>
+            </div>
+          </div>
           
           <h2 className="section-subtitle">Championships & Victories</h2>
           

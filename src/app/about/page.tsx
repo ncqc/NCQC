@@ -5,10 +5,15 @@ export default function AboutPage() {
     <section className="about-hero" style={{ paddingTop: '15rem' }}>
         <div className="container">
             <div className="reveal-text">
-                <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Our Story</h1>
+                <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif' }}>Our Story</h1>
             </div>
             <div className="about-content reveal-fade delay-1 is-visible">
-                <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>Pioneers of knowledge since 1982, cultivating brilliance at Nalanda College.</p>
+                <div className="lead-pill-wrap">
+                  <div className="lead-pill-badge">
+                    <span className="lead-pill-dot"></span>
+                    <span className="lead-pill-text" style={{ color: '#64748b' }}>Pioneers of knowledge since 1982, cultivating brilliance at Nalanda College.</span>
+                  </div>
+                </div>
                 
                 <div className="about-grid">
                     <div className="about-text">

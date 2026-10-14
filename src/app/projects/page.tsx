@@ -12,12 +12,15 @@ export default async function ProjectsPage() {
     <section className="about-hero" style={{ paddingTop: '15rem' }}>
       <div className="container">
         <div className="reveal-text">
-          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Our Projects</h1>
+          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif' }}>Our Projects</h1>
         </div>
         <div className="about-content reveal-fade delay-1 is-visible">
-          <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>
-            Innovative initiatives to elevate the quizzing standard in Sri Lanka.
-          </p>
+          <div className="lead-pill-wrap">
+            <div className="lead-pill-badge">
+              <span className="lead-pill-dot"></span>
+              <span className="lead-pill-text" style={{ color: '#64748b' }}>Innovative initiatives to elevate the quizzing standard in Sri Lanka.</span>
+            </div>
+          </div>
           
           <h2 className="section-subtitle">Flagship Events</h2>
           

@@ -7,11 +7,16 @@ export default function ContactPage() {
             <div className="contact-bg-logo"></div>
 
             <div className="reveal-text">
-                <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Contact Details</h1>
+                <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif' }}>Contact Details</h1>
             </div>
             
             <div className="about-content reveal-fade delay-1 is-visible" style={{ position: 'relative', zIndex: 2 }}>
-                <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>Get in touch with the executive committee for inquiries and collaborations.</p>
+                <div className="lead-pill-wrap">
+                  <div className="lead-pill-badge">
+                    <span className="lead-pill-dot"></span>
+                    <span className="lead-pill-text" style={{ color: '#64748b' }}>Get in touch with the executive committee for inquiries and collaborations.</span>
+                  </div>
+                </div>
                 
                 <div className="contact-grid">
                     <div className="contact-card reveal-fade up is-visible">

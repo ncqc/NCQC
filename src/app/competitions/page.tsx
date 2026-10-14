@@ -12,12 +12,15 @@ export default async function CompetitionsPage() {
     <section className="about-hero" style={{ paddingTop: '15rem', paddingBottom: '5rem' }}>
       <div className="container">
         <div className="reveal-text">
-          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Competitions</h1>
+          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif' }}>Competitions</h1>
         </div>
         <div className="about-content reveal-fade delay-1 is-visible">
-          <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>
-            Explore our upcoming and past intellectual battles.
-          </p>
+          <div className="lead-pill-wrap">
+            <div className="lead-pill-badge">
+              <span className="lead-pill-dot"></span>
+              <span className="lead-pill-text" style={{ color: '#64748b' }}>Explore our upcoming and past intellectual battles.</span>
+            </div>
+          </div>
           
           <div className="competitions-grid">
             {competitions.map((competition) => (

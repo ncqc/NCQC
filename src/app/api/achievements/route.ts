@@ -63,14 +63,43 @@ export async function POST(req: Request) {
     const { id, ...dataToSave } = payload;
     const item = { ...dataToSave, slug: cleanSlug };
 
-    const { data, error } = await supabase
-      .from('achievement')
-      .upsert(item, { onConflict: 'slug' })
-      .select()
-      .single();
+    // Check if an achievement with this slug or id already exists
+    let existingId = id;
+    if (!existingId) {
+      const { data: existing } = await supabase
+        .from('achievement')
+        .select('id')
+        .eq('slug', cleanSlug)
+        .maybeSingle();
+      if (existing) {
+        existingId = existing.id;
+      }
+    }
+
+    let data;
+    let error;
+
+    if (existingId) {
+      const res = await supabase
+        .from('achievement')
+        .update(item)
+        .eq('id', existingId)
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    } else {
+      const res = await supabase
+        .from('achievement')
+        .insert(item)
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    }
 
     if (error) {
-      console.error('Supabase achievement upsert error:', error);
+      console.error('Supabase achievement save error:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 

@@ -11,12 +11,15 @@ export default async function GalleryPage() {
     <section className="about-hero" style={{ paddingTop: '15rem', paddingBottom: '5rem' }}>
       <div className="container">
         <div className="reveal-text">
-          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)' }}>Moments of Glory</h1>
+          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif' }}>Moments of Glory</h1>
         </div>
         <div className="about-content reveal-fade delay-1 is-visible">
-          <p className="lead-text" style={{ color: '#475569', fontSize: '1.25rem', lineHeight: '1.6', textAlign: 'center', margin: '0 auto 4rem auto', maxWidth: '800px' }}>
-            A visual journey through our greatest victories and cherished memories.
-          </p>
+          <div className="lead-pill-wrap">
+            <div className="lead-pill-badge">
+              <span className="lead-pill-dot"></span>
+              <span className="lead-pill-text" style={{ color: '#64748b' }}>A visual journey through our greatest victories and cherished memories.</span>
+            </div>
+          </div>
 
           {/* Gallery Sneak Peek (3D Carousel Mini) */}
           <div className="gallery-wrapper reveal-fade up is-visible" style={{ transform: 'scale(0.8)', margin: '2rem 0 5rem 0' }}>

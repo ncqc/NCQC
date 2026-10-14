@@ -30,15 +30,18 @@ export default async function AlbumPage({ params }: { params: Promise<{ slug: st
         </div>
         
         <div className="reveal-text">
-          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-brutalist)', fontSize: '2.5rem' }}>
+          <h1 className="page-title" style={{ textAlign: 'center', color: '#111', WebkitTextStroke: '0', fontFamily: 'var(--font-super-mellow), "SuperMellow", sans-serif', fontSize: '2.5rem' }}>
             {album.title}
           </h1>
         </div>
         
         <div className="about-content">
-          <p className="lead-text" style={{ color: '#475569', fontSize: '1.1rem', textAlign: 'center', margin: '1rem auto 2rem auto' }}>
-            {album.date} &bull; {album.photos.length} Photos
-          </p>
+          <div className="lead-pill-wrap" style={{ margin: '1rem 0 2rem 0' }}>
+            <div className="lead-pill-badge">
+              <span className="lead-pill-dot"></span>
+              <span className="lead-pill-text">{album.date} &bull; {album.photos.length} Photos</span>
+            </div>
+          </div>
 
           <GalleryGrid photos={album.photos} />
         </div>
