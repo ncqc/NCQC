@@ -59,9 +59,108 @@ const syncopate = Syncopate({
   variable: "--font-brutalist",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ncqc27.vercel.app';
+
 export const metadata: Metadata = {
-  title: "Nalanda College Quiz Club",
-  description: "The world's most elegant quiz society. Pure intellect.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'Nalanda College Quiz Club | NCQC',
+    template: '%s | Nalanda College Quiz Club',
+  },
+  description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+  keywords: [
+    'Nalanda College Quiz Club',
+    'NCQC',
+    'Nalanda College Colombo 10',
+    'Intellectus 2026',
+    'Intellectus inter-school quiz competition',
+    'Sri Lanka school quiz clubs',
+    'general knowledge quiz Sri Lanka',
+    'Nalanda College societies',
+    'Sinhala and English medium quiz',
+    'Advanced Level students quiz',
+    'Colombo schools quiz competitions',
+    'education and science quiz Sri Lanka',
+    'Nalanda College',
+    'Quiz Club',
+    'Intellectus',
+  ],
+  authors: [{ name: 'Nalanda College Quiz Club', url: siteUrl }],
+  creator: 'Nalanda College Quiz Club',
+  publisher: 'Nalanda College Colombo 10',
+  applicationName: 'Nalanda College Quiz Club Portal',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Nalanda College Quiz Club | NCQC',
+    description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+    url: siteUrl,
+    siteName: 'Nalanda College Quiz Club',
+    images: [
+      {
+        url: '/homelogo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Nalanda College Quiz Club Logo',
+      },
+    ],
+    locale: 'en_LK',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Nalanda College Quiz Club | NCQC',
+    description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+    images: ['/homelogo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'EducationalOrganization',
+      '@id': `${siteUrl}/#organization`,
+      name: 'Nalanda College Quiz Club',
+      alternateName: ['NCQC', 'Nalanda Quiz Club', 'NCQC Colombo'],
+      url: siteUrl,
+      logo: `${siteUrl}/homelogo.png`,
+      description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+      foundingDate: '1982',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Nalanda College, Ananda Rajakaruna Mawatha',
+        addressLocality: 'Colombo 10',
+        addressRegion: 'Western Province',
+        addressCountry: 'LK',
+      },
+      sameAs: [
+        'https://facebook.com',
+        'https://instagram.com',
+      ],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: 'Nalanda College Quiz Club',
+      publisher: {
+        '@id': `${siteUrl}/#organization`,
+      },
+    },
+  ],
 };
 
 import SecurityShield from "@/components/SecurityShield";
@@ -75,6 +174,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <link rel="preload" href="/fonts/TheGlobePersonalUseBold-2ORlw.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/SuperMellowRegular-e90Vg.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/GuberaMonoDemoRegular-MA6Vv.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
