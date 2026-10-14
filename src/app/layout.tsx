@@ -125,6 +125,15 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  icons: {
+    icon: [
+      { url: '/tab.png', href: '/tab.png' },
+    ],
+    shortcut: ['/tab.png'],
+    apple: [
+      { url: '/tab.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 const jsonLd = {
@@ -174,6 +183,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" type="image/png" href="/tab.png" />
+        <link rel="shortcut icon" href="/tab.png" />
+        <link rel="apple-touch-icon" href="/tab.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
