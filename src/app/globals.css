@@ -253,7 +253,7 @@ h6 {
 .nav-links {
     display: flex;
     list-style: none;
-    gap: 1.5rem;
+    gap: clamp(1.25rem, 2.3vw, 2.75rem);
     align-items: center;
 }
 
@@ -277,27 +277,34 @@ h6 {
     color: var(--red);
     font-family: var(--font-impact);
     /* Bebas Neue for extreme condensed look */
-    font-size: 1.25rem;
-    /* Larger because it's so condensed */
+    font-size: 1.35rem;
     font-weight: 400;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     position: relative;
-    padding-bottom: 2px;
+    padding: 0.35rem 0.15rem;
+    display: inline-block;
+    transition: color 0.25s ease, transform 0.2s ease;
 }
 
-.nav-links a:not(.btn-join)::after {
+.nav-links a:hover {
+    color: #9b0018;
+    transform: translateY(-1px);
+}
+
+.nav-links a::after {
     content: '';
     position: absolute;
     bottom: 0;
     left: 0;
     width: 0%;
-    height: 1px;
+    height: 2px;
     background-color: var(--red);
-    transition: var(--transition-med);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 2px;
 }
 
-.nav-links a:not(.btn-join):hover::after,
+.nav-links a:hover::after,
 .nav-links a.active::after {
     width: 100%;
 }

@@ -41,7 +41,6 @@ export default function Navbar() {
           <li><Link href="/competitions" prefetch={true} className={isActive('/competitions')}>Competitions</Link></li>
           <li><Link href="/gallery" prefetch={true} className={isActive('/gallery') || pathname.startsWith('/gallery') ? 'active' : ''}>Gallery</Link></li>
           <li><Link href="/contact" prefetch={true} className={isActive('/contact')}>Contact</Link></li>
-          <li><a href="#join" className="btn-join">Join Exclusive</a></li>
         </ul>
       </div>
     </nav>

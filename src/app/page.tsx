@@ -247,19 +247,7 @@ export default async function Home() {
           </div>
       </section>
 
-      {/* Elegant Call to Action */}
-      <section id="join" className="section-red">
-          <div className="container">
-              <div className="cta-minimal reveal-fade up is-visible">
-                  <h2>Ready to elevate?</h2>
-                  <p>Request an invitation to join the society.</p>
-                  <form className="minimal-form">
-                      <input type="email" placeholder="Enter your email address" required />
-                      <button type="submit" className="btn-white">Request Invite</button>
-                  </form>
-              </div>
-          </div>
-      </section>
+
     </>
   );
 }
