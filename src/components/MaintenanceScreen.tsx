@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 interface MaintenanceScreenProps {
   notice?: string;
@@ -241,23 +240,6 @@ export default function MaintenanceScreen({
           >
             Instagram
           </a>
-          <Link
-            href="/admin"
-            style={{
-              color: '#f87171',
-              textDecoration: 'none',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              background: 'rgba(239, 68, 68, 0.1)',
-              padding: '0.35rem 0.8rem',
-              borderRadius: '8px',
-              border: '1px solid rgba(239, 68, 68, 0.25)'
-            }}
-          >
-            <span>🔐</span> Admin Workspace
-          </Link>
         </div>
       </footer>
     </div>
