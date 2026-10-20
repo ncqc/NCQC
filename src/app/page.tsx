@@ -181,7 +181,6 @@ export default async function Home() {
               </div>
               
               <div className="gallery-wrapper reveal-fade up" style={{ transform: 'scale(0.7)', margin: '-2rem 0' }}>
-                  <img src="/bar.png" alt="NCQC Center Logo" className="gallery-center-logo" />
                   <div className="gallery-3d-container">
                       <div className="gallery-spinner">
                           {heroImages.slice(0, 6).map((img, index) => (

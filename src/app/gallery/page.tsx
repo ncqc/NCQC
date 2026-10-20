@@ -23,7 +23,6 @@ export default async function GalleryPage() {
 
           {/* Gallery Sneak Peek (3D Carousel Mini) */}
           <div className="gallery-wrapper reveal-fade up is-visible" style={{ transform: 'scale(0.8)', margin: '2rem 0 5rem 0' }}>
-              <img src="/bar.png" alt="NCQC Center Logo" className="gallery-center-logo" />
               <div className="gallery-3d-container">
                   <div className="gallery-spinner">
                     {heroImages.slice(0, 6).map((img, index) => (
