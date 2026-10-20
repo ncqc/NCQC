@@ -4,15 +4,20 @@ import crypto from 'crypto';
 // Server-side environment secrets (never exposed to client bundle)
 const SECRET = process.env.ADMIN_AUTH_SECRET || '000c6ccab81a2d69f0ef3b470b72907afee36d52ddcf2ce6818034032a759112';
 
-const ADMIN_ACCOUNTS: Record<string, { email: string; hash: string; role: string }> = {
+const ADMIN_ACCOUNTS: Record<string, { email: string; hashes: string[]; role: string }> = {
   'kemitharandinu@gmail.com': {
     email: 'kemitharandinu@gmail.com',
-    hash: process.env.ADMIN_KEMITHA_HASH || 'c201dedd0567aacd120dc2e73ef6bcfe008ca5a15ce76808641d2e56b61da539',
+    hashes: [
+      '0441b05173cd1b9743c639397bb6a7fa46541c5aa6a12541ceb1bc7c2a0bdddc', // Kemitha2008326@
+      'c201dedd0567aacd120dc2e73ef6bcfe008ca5a15ce76808641d2e56b61da539'  // Kemitha2008316@
+    ],
     role: 'Super Admin'
   },
   'dg.edits65@gmail.com': {
     email: 'dg.edits65@gmail.com',
-    hash: process.env.ADMIN_NIKILA_HASH || '02cabd883ba2f306ea1f9510a27478f6ef9d85ce2be6dbc0f2b3e361862c60c1',
+    hashes: [
+      '02cabd883ba2f306ea1f9510a27478f6ef9d85ce2be6dbc0f2b3e361862c60c1'  // Nikila2008326@
+    ],
     role: 'Super Admin'
   }
 };
@@ -157,38 +162,77 @@ export async function POST(req: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
     const rateKey = getClientIdentifier(req, normalizedEmail);
+    const adminRecord = ADMIN_ACCOUNTS[normalizedEmail];
 
-    // 1. Rate Limiting Check
-    const rateStatus = checkRateLimit(rateKey);
-    if (rateStatus.isLocked) {
-      const minutes = Math.ceil(rateStatus.remainingSecs / 60);
+    // Must be an authorized admin account
+    if (!adminRecord) {
+      const failInfo = registerFailedAttempt(rateKey);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Security Lockout Active: Too many failed login attempts. Terminal locked for ${minutes} minute${minutes > 1 ? 's' : ''}.`,
-          locked: true,
-          remainingSeconds: rateStatus.remainingSecs
+        {
+          success: false,
+          error: `Authentication Failed: Invalid administrator credentials. ${failInfo.attemptsLeft} attempt${failInfo.attemptsLeft !== 1 ? 's' : ''} remaining.`,
+          attemptsLeft: failInfo.attemptsLeft
         },
-        { status: 429 }
+        { status: 401 }
       );
     }
 
-    // 2. Constant-Time Hash Verification
-    const candidateHash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
-    const adminRecord = ADMIN_ACCOUNTS[normalizedEmail];
-
     let isValid = false;
-    if (adminRecord && adminRecord.hash) {
+
+    // 1. Direct validation via Firebase Authentication REST API
+    const firebaseApiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCTyrQWbVNEbPWp56GVadbhXmlB9oq2-b0';
+    try {
+      const fbRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: cleanPassword,
+          returnSecureToken: true
+        })
+      });
+      if (fbRes.ok) {
+        const fbData = await fbRes.json();
+        if (fbData && fbData.registered && fbData.email && fbData.email.toLowerCase() === normalizedEmail) {
+          isValid = true;
+        }
+      }
+    } catch (fbErr) {
+      console.warn('Firebase Auth REST check notice:', fbErr);
+    }
+
+    // 2. High-speed SHA-256 constant-time hash verification fallback
+    if (!isValid && adminRecord.hashes) {
+      const candidateHash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
       const candidateBuffer = Buffer.from(candidateHash, 'hex');
-      const expectedBuffer = Buffer.from(adminRecord.hash, 'hex');
-      if (candidateBuffer.length === expectedBuffer.length) {
-        isValid = crypto.timingSafeEqual(candidateBuffer, expectedBuffer);
+      for (const expectedHash of adminRecord.hashes) {
+        const expectedBuffer = Buffer.from(expectedHash, 'hex');
+        if (candidateBuffer.length === expectedBuffer.length) {
+          if (crypto.timingSafeEqual(candidateBuffer, expectedBuffer)) {
+            isValid = true;
+            break;
+          }
+        }
       }
     }
 
     if (!isValid) {
+      // Check lockout if too many failed attempts
+      const rateStatus = checkRateLimit(rateKey);
+      if (rateStatus.isLocked) {
+        const minutes = Math.ceil(rateStatus.remainingSecs / 60);
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Security Lockout Active: Too many failed login attempts. Terminal locked for ${minutes} minute${minutes > 1 ? 's' : ''}.`,
+            locked: true,
+            remainingSeconds: rateStatus.remainingSecs
+          },
+          { status: 429 }
+        );
+      }
+
       const failInfo = registerFailedAttempt(rateKey);
-      // Generic error response to prevent user enumeration
       if (failInfo.isLocked) {
         return NextResponse.json(
           {
