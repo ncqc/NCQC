@@ -8,8 +8,8 @@ export default function ScrollAnimation() {
   useEffect(() => {
     // 1. Reveal Animation
     const observerOptions = {
-      threshold: 0.05,
-      rootMargin: "0px 0px 50px 0px"
+      threshold: 0.1,
+      rootMargin: "0px 0px -40px 0px"
     };
 
     const scrollObserver = new IntersectionObserver((entries) => {
@@ -22,9 +22,9 @@ export default function ScrollAnimation() {
 
     const elementsToReveal = document.querySelectorAll('.reveal-fade, .card-clean, .about-box, .stat-3d-card, .comp-card, .album-item');
     elementsToReveal.forEach(el => {
-      // Immediately reveal elements that are already within or near viewport
+      // Immediately reveal only elements that are truly above the fold on initial screen load
       const rect = el.getBoundingClientRect();
-      if (rect.top < window.innerHeight + 150) {
+      if (rect.top < window.innerHeight * 0.85 && rect.bottom > 0) {
         el.classList.add('is-visible');
       }
       scrollObserver.observe(el);

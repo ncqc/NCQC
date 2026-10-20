@@ -82,6 +82,7 @@ html {
     font-size: 16px;
     overflow-x: hidden;
     width: 100vw;
+    scroll-behavior: smooth;
 }
 
 body {
@@ -1686,16 +1687,30 @@ h6 {
 
 .reveal-fade {
     opacity: 0;
-    transition: opacity 1.2s var(--ease-smooth), transform 1.2s var(--ease-smooth);
+    transform: translateY(32px) scale(0.98);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
 }
 
 .reveal-fade.up {
-    transform: translateY(40px);
+    transform: translateY(40px) scale(0.98);
+}
+
+.reveal-fade.delay-1 {
+    transition-delay: 0.12s;
+}
+
+.reveal-fade.delay-2 {
+    transition-delay: 0.24s;
+}
+
+.reveal-fade.delay-3 {
+    transition-delay: 0.36s;
 }
 
 .reveal-fade.is-visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
 }
 
 /* About Box on Homepage */

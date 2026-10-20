@@ -362,7 +362,7 @@ export default function Stats3DSection() {
       id="explore"
       style={{
         position: 'relative',
-        padding: '5.5rem 1.5rem 6.5rem',
+        padding: '2.5rem 1.5rem 4.5rem',
         overflow: 'hidden',
         background: 'transparent'
       }}
@@ -434,54 +434,6 @@ export default function Stats3DSection() {
           zIndex: 10
         }}
       >
-        {/* Section Top Header Pill */}
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.45rem 1.1rem',
-              borderRadius: '9999px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              border: '1px solid rgba(226, 232, 240, 0.9)',
-              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: '#0f172a',
-              marginBottom: '0.85rem'
-            }}
-          >
-            <span style={{ fontSize: '0.95rem' }}>✨</span>
-            <span>Unmatched Heritage & Scale</span>
-          </div>
-
-          <h2
-            style={{
-              fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)',
-              fontWeight: 900,
-              color: '#0f172a',
-              letterSpacing: '-0.025em',
-              margin: '0 0 0.5rem 0'
-            }}
-          >
-            The Pinnacle of Sri Lankan Quizzing
-          </h2>
-          <p
-            style={{
-              fontSize: '0.95rem',
-              color: '#64748b',
-              maxWidth: '560px',
-              margin: '0 auto',
-              lineHeight: 1.6
-            }}
-          >
-            A legacy built over decades with unmatched passion, competitive victories, and an elite fellowship.
-          </p>
-        </div>
-
         {/* 3D Cards Grid */}
         <div
           style={{

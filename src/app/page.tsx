@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Typewriter from '@/components/Typewriter';
 import Stats3DSection from '@/components/Stats3DSection';
+import StandardOfExcellence3D from '@/components/StandardOfExcellence3D';
 import { getAchievementsData } from '@/data/achievements';
 import { getProjectsData } from '@/data/projects';
 import { getGalleryHeroImages } from '@/data/gallery';
@@ -59,49 +60,20 @@ export default async function Home() {
       {/* Modern 3D Vibrant Key Statistics */}
       <Stats3DSection />
 
-      {/* Minimalist Features */}
-      <section id="explore" className="section-clean">
-          <div className="container">
-              <div className="section-header reveal-fade is-visible">
-                  <h2 className="section-title">The Standard of Excellence</h2>
-              </div>
-              
-              <div className="grid-clean">
-                  <div className="card-clean reveal-fade up is-visible">
-                      <div className="card-line"></div>
-                      <div className="card-number">01</div>
-                      <h3>Intellectual Mastery</h3>
-                      <p>Going beyond textbooks. We train the sharpest minds to conquer challenges, provoke thought, and continuously expand their intellectual horizons.</p>
-                  </div>
-                  
-                  <div className="card-clean reveal-fade up delay-1 is-visible">
-                      <div className="card-line"></div>
-                      <div className="card-number">02</div>
-                      <h3>Championship Legacy</h3>
-                      <p>From inter-school battles to national championships, we proudly represent our college, dominating the island&apos;s most prestigious quiz arenas.</p>
-                  </div>
-                  
-                  <div className="card-clean reveal-fade up delay-2 is-visible">
-                      <div className="card-line"></div>
-                      <div className="card-number">03</div>
-                      <h3>Elite Community</h3>
-                      <p>More than just a club. We foster a collaborative, distraction-free environment where passionate learners share knowledge and grow together.</p>
-                  </div>
-              </div>
-          </div>
-      </section>
+      {/* Modern 3D The Standard of Excellence (SuperMellow font & multi-colored 3D) */}
+      <StandardOfExcellence3D />
 
       {/* Upcoming Events (Neon/Glass Timeline) */}
       {showUpcomingBattles && (
         <section className="section-events">
             <div className="container">
-                <div className="section-header reveal-fade text-center is-visible">
+                <div className="section-header reveal-fade text-center">
                     <h2 className="section-title">Upcoming Battles</h2>
                 </div>
                 
                 <div className={`competitions-grid ${starredCompetitions.length === 1 ? 'single-comp' : ''}`}>
                     {starredCompetitions.map((comp, index) => (
-                      <div key={comp.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
+                      <div key={comp.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''}`}>
                           <div className="comp-img-wrapper">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img 
@@ -145,12 +117,12 @@ export default async function Home() {
       {/* Featured Achievements */}
       <section className="section-achievements-preview">
           <div className="container">
-              <div className="section-header reveal-fade text-center is-visible">
+              <div className="section-header reveal-fade text-center">
                   <h2 className="section-title">Hall of Fame</h2>
               </div>
               <div className={`competitions-grid ${displayAchievements.length === 1 ? 'single-comp' : ''}`}>
                   {displayAchievements.map((achievement, index) => (
-                    <div key={achievement.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
+                    <div key={achievement.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''}`}>
                         <div className="comp-img-wrapper">
                             <img src={achievement.image} alt={stripStyledText(achievement.title)} className="comp-img" style={{ objectFit: achievement.image.includes('logo') ? 'contain' : 'cover', padding: achievement.image.includes('logo') ? '2rem' : '0' }} />
                         </div>
@@ -174,13 +146,13 @@ export default async function Home() {
       {/* Featured Projects */}
       <section className="section-achievements-preview">
           <div className="container">
-              <div className="section-header reveal-fade text-center is-visible" style={{ marginBottom: '4rem' }}>
+              <div className="section-header reveal-fade text-center" style={{ marginBottom: '4rem' }}>
                   <h2 className="section-title">Our Projects</h2>
                   <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '1rem' }}>Discover the initiatives driven by our society.</p>
               </div>
               <div className={`competitions-grid ${displayProjects.length === 1 ? 'single-comp' : ''}`}>
                   {displayProjects.map((project, index) => (
-                    <div key={project.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''} is-visible`}>
+                    <div key={project.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''}`}>
                         <div className="comp-img-wrapper">
                             <img src={project.image} alt={stripStyledText(project.title)} className="comp-img" style={{ objectFit: project.image.includes('logo') ? 'contain' : 'cover', padding: project.image.includes('logo') ? '2rem' : '0' }} />
                         </div>
@@ -204,11 +176,11 @@ export default async function Home() {
       {/* Gallery Sneak Peek (3D Carousel Mini) */}
       <section className="section-gallery-preview" style={{ paddingBottom: '10rem' }}>
           <div className="container text-center">
-              <div className="section-header reveal-fade is-visible">
+              <div className="section-header reveal-fade">
                   <h2 className="section-title">Moments of Glory</h2>
               </div>
               
-              <div className="gallery-wrapper reveal-fade up is-visible" style={{ transform: 'scale(0.7)', margin: '-2rem 0' }}>
+              <div className="gallery-wrapper reveal-fade up" style={{ transform: 'scale(0.7)', margin: '-2rem 0' }}>
                   <img src="/bar.png" alt="NCQC Center Logo" className="gallery-center-logo" />
                   <div className="gallery-3d-container">
                       <div className="gallery-spinner">
