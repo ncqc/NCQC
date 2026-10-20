@@ -21,7 +21,7 @@ export default async function CompetitionsPage() {
               <span className="lead-pill-text" style={{ color: '#64748b' }}>Explore our upcoming and past intellectual battles.</span>
             </div>
           </div>
-          
+
           <div className="competitions-grid">
             {competitions.map((competition) => (
               <div key={competition.slug} className="comp-card reveal-fade up is-visible">

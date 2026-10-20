@@ -845,3 +845,28 @@
   }
 }
 
+/* Sleek Scrollbar for Form Preview Card */
+.form-preview-scrollable {
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.form-preview-scrollable::-webkit-scrollbar {
+  width: 7px;
+}
+
+.form-preview-scrollable::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.form-preview-scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.form-preview-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

@@ -41,10 +41,9 @@ export default function SecurityShield() {
       showSecurityToast('🛡️ Security Active: Right-Click & Inspect are disabled.');
     };
 
-    // 2. Prevent DevTools & Source viewing keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-      const key = e.key.toLowerCase();
+      const key = (e.key || '').toLowerCase();
 
       // F12 key
       if (e.key === 'F12' || e.keyCode === 123) {

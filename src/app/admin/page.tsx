@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
+import { checkFirebaseHealth, syncLocalSubmissionsToFirebase } from '@/lib/firebaseForms';
 
 interface DashboardData {
   stats: {
@@ -56,6 +57,27 @@ export default function AdminDashboard() {
   const [etaDraft, setEtaDraft] = useState('');
   const [showMaintenanceSettings, setShowMaintenanceSettings] = useState(false);
 
+  // Firebase Monitor State (Image 1 Feature)
+  const [firebaseStatus, setFirebaseStatus] = useState<{
+    connected: boolean;
+    rulesLocked: boolean;
+    rtdbStatus: string;
+    firestoreStatus: string;
+    submissionsCount: number;
+    formsCount: number;
+    message: string;
+  }>({
+    connected: true,
+    rulesLocked: false,
+    rtdbStatus: 'online',
+    firestoreStatus: 'online',
+    submissionsCount: 0,
+    formsCount: 0,
+    message: 'Probing Firebase status...'
+  });
+  const [isFirebaseTesting, setIsFirebaseTesting] = useState(false);
+  const [firebaseNotice, setFirebaseNotice] = useState<string | null>(null);
+
   const fetchDashboardData = async () => {
     try {
       const res = await fetch('/api/admin/dashboard');
@@ -74,7 +96,45 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Check Firebase Realtime & Firestore Health
+    checkFirebaseHealth().then(status => {
+      setFirebaseStatus({
+        connected: status.connected,
+        rulesLocked: status.rulesLocked,
+        rtdbStatus: status.rtdbStatus,
+        firestoreStatus: status.firestoreStatus,
+        submissionsCount: status.totalSubmissions,
+        formsCount: status.totalForms,
+        message: status.message
+      });
+    });
   }, []);
+
+  const handleTestFirebase = async () => {
+    setIsFirebaseTesting(true);
+    try {
+      const status = await checkFirebaseHealth();
+      const syncResult = await syncLocalSubmissionsToFirebase();
+      setFirebaseStatus({
+        connected: status.connected,
+        rulesLocked: status.rulesLocked,
+        rtdbStatus: status.rtdbStatus,
+        firestoreStatus: status.firestoreStatus,
+        submissionsCount: status.totalSubmissions,
+        formsCount: status.totalForms,
+        message: status.message
+      });
+      if (status.rulesLocked) {
+        setFirebaseNotice('⚠️ Firebase Security Rules are locked (if false;). Please change to "allow read, write: if true;" in Firebase Console to sync.');
+      } else {
+        setFirebaseNotice(`✅ Firebase Dual Cloud Connected! Synced ${syncResult.success} submissions to the cloud.`);
+      }
+      setTimeout(() => setFirebaseNotice(null), 6000);
+    } finally {
+      setIsFirebaseTesting(false);
+    }
+  };
 
   const handleSyncDatabase = async () => {
     setIsSyncing(true);
@@ -452,7 +512,7 @@ export default function AdminDashboard() {
       }}>
         {/* Left Column: Competitions Tracker & Recent Activities */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* ⚔️ Competitions & Deadlines Tracker (තරඟ සහ ඩෙඩ්ලයින් නිරීක්ෂකය) */}
+          {/* ⚔️ Competitions & Deadlines Tracker */}
           <div style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -561,7 +621,7 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* 📋 Recent Activities & Audit Log (මෑතකදී කළ වෙනස්කම්) */}
+          {/* 📋 Recent Activities & Audit Log */}
           <div style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -628,7 +688,7 @@ export default function AdminDashboard() {
 
         {/* Right Column: Supabase Storage Monitor & Quick Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* ☁️ Supabase Cloud Storage Monitor (Storage සහ Media භාවිතය) */}
+          {/* ☁️ Supabase Cloud Storage Monitor */}
           <div style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -715,7 +775,149 @@ export default function AdminDashboard() {
             </Link>
           </div>
 
-          {/* ⚡ Quick Actions (විධානයන්) */}
+          {/* 🔥 Firebase Realtime & Firestore Monitor (Image 1 Feature) */}
+          <div style={{
+            background: '#ffffff',
+            border: firebaseStatus.rulesLocked ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+            borderRadius: '18px',
+            padding: '1.5rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+            position: 'relative'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>🔥</span>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  Firebase Database Monitor
+                </h2>
+              </div>
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                color: firebaseStatus.rulesLocked ? '#dc2626' : '#15803d',
+                background: firebaseStatus.rulesLocked ? '#fee2e2' : '#ecfdf5',
+                padding: '0.2rem 0.65rem',
+                borderRadius: '100px',
+                border: firebaseStatus.rulesLocked ? '1px solid #fca5a5' : '1px solid #a7f3d0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: firebaseStatus.rulesLocked ? '#dc2626' : '#16a34a' }} />
+                {firebaseStatus.rulesLocked ? 'Rules Locked (if false;)' : 'Dual Cloud Live'}
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 1.25rem 0' }}>
+              Real-time synchronization for candidate registrations, custom forms, and admin dossiers.
+            </p>
+
+            {/* Metric Cards (2x2) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>TOTAL SUBMISSIONS</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
+                  {firebaseStatus.submissionsCount} Applicants
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>CUSTOM FORMS</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
+                  {firebaseStatus.formsCount} Forms
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>DATABASE ENGINES</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+                  RTDB + Firestore
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>REGION</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+                  asia-southeast1
+                </span>
+              </div>
+            </div>
+
+            {/* Security Rules Notice Alert Box */}
+            {firebaseStatus.rulesLocked && (
+              <div style={{
+                background: '#fff7ed',
+                border: '1px solid #fdba74',
+                borderRadius: '12px',
+                padding: '0.85rem',
+                marginBottom: '1rem',
+                fontSize: '0.78rem',
+                color: '#9a3412',
+                lineHeight: 1.5
+              }}>
+                <strong>⚠️ Security Rules Notice:</strong> Firebase Firestore rules are set to <code>allow read, write: if false;</code>. Open your Firebase Console and change to <code>allow read, write: if true;</code> to allow online candidate registrations to sync.
+              </div>
+            )}
+
+            {/* Toast Notification */}
+            {firebaseNotice && (
+              <div style={{
+                background: '#0f172a',
+                color: '#ffffff',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                marginBottom: '1rem',
+                fontWeight: 600
+              }}>
+                {firebaseNotice}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <button
+                type="button"
+                onClick={handleTestFirebase}
+                disabled={isFirebaseTesting}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.65rem',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: isFirebaseTesting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 12px rgba(234, 88, 12, 0.25)'
+                }}
+              >
+                <span>⚡</span> {isFirebaseTesting ? 'Checking Cloud Connection...' : 'Test Connection & Sync Now'}
+              </button>
+
+              <Link
+                href="/admin/forms"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.6rem',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textDecoration: 'none'
+                }}
+              >
+                Open Submissions Hub & Forms Studio &rarr;
+              </Link>
+            </div>
+          </div>
+
+          {/* ⚡ Quick Actions */}
           <div style={{
             background: '#ffffff',
             border: '1px solid #e2e8f0',

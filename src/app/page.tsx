@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Typewriter from '@/components/Typewriter';
+import Stats3DSection from '@/components/Stats3DSection';
 import { getAchievementsData } from '@/data/achievements';
 import { getProjectsData } from '@/data/projects';
 import { getGalleryHeroImages } from '@/data/gallery';
@@ -55,31 +56,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Key Statistics */}
-      <section className="section-stats" id="explore">
-          <div className="container">
-              <div className="stats-3d-grid">
-                  <div className="stat-3d-card reveal-fade up is-visible">
-                      <div className="stat-content">
-                          <h2 className="counter-wrap"><span className="counter">43</span></h2>
-                          <p>Years of Legacy</p>
-                      </div>
-                  </div>
-                  <div className="stat-3d-card reveal-fade up delay-1 is-visible">
-                      <div className="stat-content">
-                          <h2 className="counter-wrap"><span className="counter">90</span>+</h2>
-                          <p>Active Members</p>
-                      </div>
-                  </div>
-                  <div className="stat-3d-card reveal-fade up delay-2 is-visible">
-                      <div className="stat-content">
-                          <h2 className="counter-wrap"><span className="counter">50</span>+</h2>
-                          <p>Competitions Won</p>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </section>
+      {/* Modern 3D Vibrant Key Statistics */}
+      <Stats3DSection />
 
       {/* Minimalist Features */}
       <section id="explore" className="section-clean">

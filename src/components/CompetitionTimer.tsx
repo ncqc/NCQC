@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getFirebaseForms } from '@/lib/firebaseForms';
 
 interface CompetitionTimerProps {
   title?: string;
@@ -10,6 +11,7 @@ interface CompetitionTimerProps {
   rulesLink?: string;
   submissionsButtonText?: string;
   registerLink?: string;
+  competitionSlug?: string;
 }
 
 export default function CompetitionTimer({ 
@@ -19,8 +21,10 @@ export default function CompetitionTimer({
   rulesButtonText = 'Download Rules & Regs',
   rulesLink = '#',
   submissionsButtonText,
-  registerLink = '#'
+  registerLink = '#',
+  competitionSlug
 }: CompetitionTimerProps) {
+  const [attachedForm, setAttachedForm] = useState<{ id: string; title: string; slug: string } | null>(null);
   const [timeLeft, setTimeLeft] = useState<{
     days: string;
     hours: string;
@@ -39,6 +43,25 @@ export default function CompetitionTimer({
 
   useEffect(() => {
     setIsMounted(true);
+
+    // Check if custom form is linked in Firebase Cloud Database
+    if (competitionSlug) {
+      getFirebaseForms().then(forms => {
+        if (forms && forms.length > 0) {
+          const compDecoded = decodeURIComponent(competitionSlug).trim().toLowerCase();
+          const match = forms.find((f: any) => {
+            if (!f.competitionSlug) return false;
+            const fDecoded = decodeURIComponent(f.competitionSlug).trim().toLowerCase();
+            return fDecoded === compDecoded || f.competitionSlug === competitionSlug;
+          });
+          if (match && match.isActive) {
+            setAttachedForm({ id: match.id, title: match.title, slug: match.slug });
+          }
+        }
+      }).catch(e => {
+        console.warn('Error reading attached form in CompetitionTimer:', e);
+      });
+    }
 
     const parseTargetDate = (str?: string): number => {
       if (!str) return new Date('2026-11-05T00:00:00').getTime();
@@ -391,6 +414,27 @@ export default function CompetitionTimer({
 
         {/* Submissions Button: 
             Visible but strictly disabled/locked if expired, with English alert on click */}
+        {attachedForm && !timeLeft.isExpired && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.45rem',
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            color: '#15803d',
+            background: '#dcfce7',
+            border: '1px solid #86efac',
+            padding: '0.35rem 0.8rem',
+            borderRadius: '100px',
+            margin: '0 auto',
+            width: 'fit-content'
+          }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
+            Online Form Attached &amp; Live
+          </div>
+        )}
+
         {timeLeft.isExpired ? (
           <div 
             onClick={() => {
@@ -426,20 +470,32 @@ export default function CompetitionTimer({
             <span>Submissions Closed &bull; Deadline Ended</span>
           </div>
         ) : (
-          <a 
-            href={registerLink} 
-            target={registerLink && registerLink !== '#' && !registerLink.startsWith('/') ? '_blank' : undefined}
-            rel="noopener noreferrer"
-            className="btn-3d-primary"
-            onClick={(e) => {
-              if (!registerLink || registerLink === '#') {
-                e.preventDefault();
-                alert('Registration portal is active! Redirecting to submission form.');
-              }
-            }}
-          >
-            {submissionsButtonText || `${title} | Submissions →`}
-          </a>
+          (() => {
+            const finalLink = attachedForm 
+              ? `/competitions/${encodeURIComponent(competitionSlug || '')}/register`
+              : registerLink;
+            const isInternal = finalLink && finalLink.startsWith('/');
+            const buttonLabel = attachedForm 
+              ? (submissionsButtonText || `Register Online (${attachedForm.title}) →`) 
+              : (submissionsButtonText || `${title} | Submissions →`);
+
+            return (
+              <a 
+                href={finalLink} 
+                target={!isInternal && finalLink && finalLink !== '#' ? '_blank' : undefined}
+                rel="noopener noreferrer"
+                className="btn-3d-primary"
+                onClick={(e) => {
+                  if (!finalLink || finalLink === '#') {
+                    e.preventDefault();
+                    alert('Registration portal is active! Redirecting to submission form.');
+                  }
+                }}
+              >
+                {buttonLabel}
+              </a>
+            );
+          })()
         )}
       </div>
     </div>

@@ -104,6 +104,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
                 rulesLink={competition.rulesButtonLink || '#'}
                 submissionsButtonText={competition.submissionsButtonText}
                 registerLink={competition.submissionsButtonLink || '#'}
+                competitionSlug={competition.slug}
               />
             </div>
         </div>
