@@ -58,6 +58,10 @@ export default function CompetitionFormsAdmin() {
   const [whatsappGroupLink, setWhatsappGroupLink] = useState<string>('');
   const [whatsappGroupLabel, setWhatsappGroupLabel] = useState<string>('Join Official WhatsApp Group');
   const [customSuccessNotice, setCustomSuccessNotice] = useState<string>('');
+  const [submitButtonText, setSubmitButtonText] = useState<string>('Submit Official Registration →');
+  const [submitButtonColor, setSubmitButtonColor] = useState<string>('#dc2626');
+  const [submitButtonGradientEnd, setSubmitButtonGradientEnd] = useState<string>('#991b1b');
+  const [submitButtonTextColor, setSubmitButtonTextColor] = useState<string>('#ffffff');
   const [formFields, setFormFields] = useState<FormField[]>([]);
   
   // Builder field options temporary typing buffer (solves comma bug completely)
@@ -169,6 +173,10 @@ export default function CompetitionFormsAdmin() {
     setWhatsappGroupLink('');
     setWhatsappGroupLabel('Join Official WhatsApp Group');
     setCustomSuccessNotice('');
+    setSubmitButtonText('Submit Official Registration →');
+    setSubmitButtonColor('#dc2626');
+    setSubmitButtonGradientEnd('#991b1b');
+    setSubmitButtonTextColor('#ffffff');
     
     // Default crisp fields (matching Image 2)
     const initialFields: FormField[] = [
@@ -205,6 +213,10 @@ export default function CompetitionFormsAdmin() {
     setWhatsappGroupLink(form.postSubmitConfig?.whatsappGroupLink || '');
     setWhatsappGroupLabel(form.postSubmitConfig?.whatsappGroupLabel || 'Join Official WhatsApp Group');
     setCustomSuccessNotice(form.postSubmitConfig?.customNotice || '');
+    setSubmitButtonText(form.submitButtonText || 'Submit Official Registration →');
+    setSubmitButtonColor(form.submitButtonColor || form.accentColor || '#dc2626');
+    setSubmitButtonGradientEnd(form.submitButtonGradientEnd || '#991b1b');
+    setSubmitButtonTextColor(form.submitButtonTextColor || '#ffffff');
     setFormFields([...(form.fields || [])]);
 
     const buffers: Record<string, string> = {};
@@ -376,6 +388,10 @@ export default function CompetitionFormsAdmin() {
         isStandalone: isStandaloneForm,
         competitionSlug: compSlugToSave,
         competitionTitle: linkedCompTitle,
+        submitButtonText: submitButtonText.trim() || 'Submit Official Registration →',
+        submitButtonColor: submitButtonColor || accentColor,
+        submitButtonGradientEnd: submitButtonGradientEnd || '#991b1b',
+        submitButtonTextColor: submitButtonTextColor || '#ffffff',
         postSubmitConfig: postSubmitConfig
       };
 
@@ -411,6 +427,10 @@ export default function CompetitionFormsAdmin() {
         isStandalone: isStandaloneForm,
         competitionSlug: compSlugToSave,
         competitionTitle: linkedCompTitle,
+        submitButtonText: submitButtonText.trim() || 'Submit Official Registration →',
+        submitButtonColor: submitButtonColor || accentColor,
+        submitButtonGradientEnd: submitButtonGradientEnd || '#991b1b',
+        submitButtonTextColor: submitButtonTextColor || '#ffffff',
         postSubmitConfig: postSubmitConfig,
         createdAt: new Date().toISOString().split('T')[0]
       };
@@ -1319,6 +1339,222 @@ export default function CompetitionFormsAdmin() {
             </div>
 
             {/* ========================================================== */}
+            {/* SUBMIT BUTTON CUSTOMIZATION (TEXT, COLORS & GRADIENTS)    */}
+            {/* ========================================================== */}
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '20px',
+              border: '2px solid #e2e8f0',
+              padding: '1.75rem',
+              marginTop: '1.75rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🔘</span>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    Submit Button Customization
+                  </h3>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', background: '#e0e7ff', padding: '0.25rem 0.65rem', borderRadius: '100px', border: '1px solid #c7d2fe' }}>
+                  🎨 Button Text & Themes
+                </span>
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#64748b', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+                Customize the button text, font color, and gradient background of the final submit button.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Button Label Input */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+                      Submit Button Text
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      {['🚀 Submit Official Registration →', '⚡ Submit Registration →', '✨ Register Team Now →', '📝 Confirm RSVP →'].map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setSubmitButtonText(preset)}
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '6px',
+                            background: '#e2e8f0',
+                            border: 'none',
+                            color: '#334155',
+                            cursor: 'pointer',
+                            fontWeight: 700
+                          }}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    value={submitButtonText}
+                    onChange={(e) => setSubmitButtonText(e.target.value)}
+                    placeholder="e.g. 🚀 Submit Official Registration →"
+                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', color: '#0f172a', fontWeight: 700 }}
+                  />
+                </div>
+
+                {/* Color Theme Selector */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                  {/* Start Color */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
+                      Gradient Start Color
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="color"
+                        value={submitButtonColor}
+                        onChange={(e) => setSubmitButtonColor(e.target.value)}
+                        style={{ width: '42px', height: '42px', border: 'none', borderRadius: '10px', cursor: 'pointer', background: 'none' }}
+                      />
+                      <input
+                        type="text"
+                        value={submitButtonColor}
+                        onChange={(e) => setSubmitButtonColor(e.target.value)}
+                        style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#0f172a', fontWeight: 700, textTransform: 'uppercase' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* End Color */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
+                      Gradient End Color
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="color"
+                        value={submitButtonGradientEnd}
+                        onChange={(e) => setSubmitButtonGradientEnd(e.target.value)}
+                        style={{ width: '42px', height: '42px', border: 'none', borderRadius: '10px', cursor: 'pointer', background: 'none' }}
+                      />
+                      <input
+                        type="text"
+                        value={submitButtonGradientEnd}
+                        onChange={(e) => setSubmitButtonGradientEnd(e.target.value)}
+                        style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#0f172a', fontWeight: 700, textTransform: 'uppercase' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Text Color */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
+                      Button Text Color
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="color"
+                        value={submitButtonTextColor}
+                        onChange={(e) => setSubmitButtonTextColor(e.target.value)}
+                        style={{ width: '42px', height: '42px', border: 'none', borderRadius: '10px', cursor: 'pointer', background: 'none' }}
+                      />
+                      <input
+                        type="text"
+                        value={submitButtonTextColor}
+                        onChange={(e) => setSubmitButtonTextColor(e.target.value)}
+                        style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#0f172a', fontWeight: 700, textTransform: 'uppercase' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Preset Badges */}
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Quick Color Presets
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {[
+                      { name: 'Crimson Flame', start: '#dc2626', end: '#991b1b', text: '#ffffff' },
+                      { name: 'Royal Blue', start: '#2563eb', end: '#1d4ed8', text: '#ffffff' },
+                      { name: 'Emerald Forest', start: '#059669', end: '#065f46', text: '#ffffff' },
+                      { name: 'Cyber Purple', start: '#7c3aed', end: '#4c1d95', text: '#ffffff' },
+                      { name: 'Sunset Amber', start: '#ea580c', end: '#9a3412', text: '#ffffff' },
+                      { name: 'Midnight Onyx', start: '#1e293b', end: '#0f172a', text: '#ffffff' },
+                      { name: 'Golden Glow', start: '#f59e0b', end: '#b45309', text: '#000000' }
+                    ].map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setSubmitButtonColor(preset.start);
+                          setSubmitButtonGradientEnd(preset.end);
+                          setSubmitButtonTextColor(preset.text);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: '8px',
+                          border: submitButtonColor === preset.start ? '2px solid #0f172a' : '1px solid #cbd5e1',
+                          background: '#fff',
+                          cursor: 'pointer',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#334155'
+                        }}
+                      >
+                        <span style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${preset.start}, ${preset.end})`,
+                          display: 'inline-block'
+                        }} />
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Instant Button Preview */}
+                <div style={{
+                  padding: '1.25rem',
+                  borderRadius: '14px',
+                  background: '#0f172a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.65rem'
+                }}>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Live Submit Button Preview
+                  </div>
+                  <div
+                    style={{
+                      background: `linear-gradient(135deg, ${submitButtonColor} 0%, ${submitButtonGradientEnd} 100%)`,
+                      color: submitButtonTextColor,
+                      padding: '1rem 2rem',
+                      borderRadius: '14px',
+                      fontWeight: 900,
+                      fontSize: '1rem',
+                      boxShadow: `0 10px 25px -4px ${submitButtonColor}88`,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      textAlign: 'center',
+                      maxWidth: '100%',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {submitButtonText || 'Submit Official Registration →'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ========================================================== */}
             {/* ATTACH FORM TO COMPETITION (BOTTOM OF BUILDER)             */}
             {/* ========================================================== */}
             <div style={{
@@ -1772,8 +2008,8 @@ export default function CompetitionFormsAdmin() {
                 <button
                   type="submit"
                   style={{
-                    background: `linear-gradient(135deg, ${accentColor} 0%, #b91c1c 100%)`,
-                    color: '#fff',
+                    background: `linear-gradient(135deg, ${submitButtonColor || accentColor} 0%, ${submitButtonGradientEnd || '#b91c1c'} 100%)`,
+                    color: submitButtonTextColor || '#fff',
                     border: 'none',
                     padding: '1.1rem',
                     borderRadius: '14px',
@@ -1781,11 +2017,15 @@ export default function CompetitionFormsAdmin() {
                     fontSize: '1.05rem',
                     cursor: 'pointer',
                     marginTop: '1rem',
-                    boxShadow: `0 12px 25px -4px ${accentColor}55`,
-                    transition: 'transform 0.15s ease'
+                    boxShadow: `0 12px 25px -4px ${(submitButtonColor || accentColor)}55`,
+                    transition: 'transform 0.15s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.6rem'
                   }}
                 >
-                  🚀 Test Submit Application
+                  {submitButtonText || 'Submit Official Registration →'}
                 </button>
               </form>
             </div>

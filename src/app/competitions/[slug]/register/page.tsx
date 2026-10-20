@@ -474,7 +474,7 @@ export default function CompetitionRegistrationPage() {
                   }}
                 >
                   <span style={{ fontSize: '1.25rem' }}>💬</span>
-                  {form.postSubmitConfig.whatsappGroupLabel || 'Join Official WhatsApp Group'} &rarr;
+                  {form.postSubmitConfig.whatsappGroupLabel || 'Join Official WhatsApp Group'} →
                 </a>
                 <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 600, marginTop: '0.4rem' }}>
                   Click to join the official updates &amp; contest announcements group
@@ -498,7 +498,7 @@ export default function CompetitionRegistrationPage() {
                   boxShadow: '0 8px 20px rgba(220, 38, 38, 0.25)'
                 }}
               >
-                Return to Competition Page &rarr;
+                Return to Competition Page →
               </Link>
               <Link
                 href="/competitions"
@@ -842,8 +842,8 @@ export default function CompetitionRegistrationPage() {
                 style={{
                   background: isExpired 
                     ? '#94a3b8' 
-                    : `linear-gradient(135deg, ${accentColor} 0%, #991b1b 100%)`,
-                  color: '#ffffff',
+                    : `linear-gradient(135deg, ${form?.submitButtonColor || accentColor} 0%, ${form?.submitButtonGradientEnd || '#991b1b'} 100%)`,
+                  color: form?.submitButtonTextColor || '#ffffff',
                   border: 'none',
                   padding: '1.15rem',
                   borderRadius: '16px',
@@ -851,13 +851,14 @@ export default function CompetitionRegistrationPage() {
                   fontSize: '1.05rem',
                   cursor: isExpired ? 'not-allowed' : 'pointer',
                   marginTop: '1.25rem',
-                  boxShadow: isExpired ? 'none' : `0 14px 28px -4px ${accentColor}55`,
+                  boxShadow: isExpired ? 'none' : `0 14px 28px -4px ${(form?.submitButtonColor || accentColor)}55`,
                   transition: 'all 0.15s ease',
                   letterSpacing: '0.02em',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.6rem'
+                  gap: '0.6rem',
+                  width: '100%'
                 }}
               >
                 {isSubmitting ? (
@@ -865,7 +866,7 @@ export default function CompetitionRegistrationPage() {
                 ) : isExpired ? (
                   <>Submissions Closed</>
                 ) : (
-                  <>🚀 Submit Registration &rarr;</>
+                  <>{form?.submitButtonText || '🚀 Submit Registration →'}</>
                 )}
               </button>
             </form>

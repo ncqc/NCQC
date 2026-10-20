@@ -347,7 +347,7 @@ export default function StandalonePublicFormPage() {
                   }}
                 >
                   <span style={{ fontSize: '1.25rem' }}>💬</span>
-                  {form.postSubmitConfig.whatsappGroupLabel || 'Join Official WhatsApp Group'} &rarr;
+                  {form.postSubmitConfig.whatsappGroupLabel || 'Join Official WhatsApp Group'} →
                 </a>
                 <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 600, marginTop: '0.5rem' }}>
                   Click to join for instant schedules, announcements &amp; quiz rounds
@@ -623,8 +623,8 @@ export default function StandalonePublicFormPage() {
                 type="submit"
                 disabled={isSubmitting}
                 style={{
-                  background: `linear-gradient(135deg, ${accentColor} 0%, #991b1b 100%)`,
-                  color: '#ffffff',
+                  background: `linear-gradient(135deg, ${form?.submitButtonColor || accentColor} 0%, ${form?.submitButtonGradientEnd || '#991b1b'} 100%)`,
+                  color: form?.submitButtonTextColor || '#ffffff',
                   border: 'none',
                   padding: '1.15rem',
                   borderRadius: '16px',
@@ -632,14 +632,15 @@ export default function StandalonePublicFormPage() {
                   fontSize: '1.05rem',
                   cursor: 'pointer',
                   marginTop: '1.25rem',
-                  boxShadow: `0 14px 28px -4px ${accentColor}55`,
+                  boxShadow: `0 14px 28px -4px ${(form?.submitButtonColor || accentColor)}55`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.6rem'
+                  gap: '0.6rem',
+                  width: '100%'
                 }}
               >
-                {isSubmitting ? '⏳ Submitting RSVP...' : '🚀 Submit Official Registration &rarr;'}
+                {isSubmitting ? '⏳ Submitting RSVP...' : (form?.submitButtonText || '🚀 Submit Official Registration →')}
               </button>
             </form>
           </div>

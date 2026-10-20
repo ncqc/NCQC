@@ -49,6 +49,10 @@ export interface CompetitionForm {
   scope: CompetitionScope;
   category?: string; // 'Senior', 'Junior', 'Primary', 'Open'
   accentColor?: string; // e.g. '#dc2626'
+  submitButtonText?: string; // Custom label on submit button
+  submitButtonColor?: string; // Primary button background/gradient start
+  submitButtonGradientEnd?: string; // Gradient end color
+  submitButtonTextColor?: string; // Text color on submit button
   competitionSlug?: string;
   competitionTitle?: string;
   isStandalone?: boolean; // For General Forms, Day Invites, Events

@@ -187,7 +187,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
                                 padding: '0.85rem 2rem'
                             }}
                         >
-                            {btn.text} &rarr;
+                            {btn.text} →
                         </a>
                     ))}
                 </div>
