@@ -390,6 +390,23 @@ export default function StandalonePublicFormPage() {
           }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: `linear-gradient(90deg, ${accentColor} 0%, #f97316 100%)` }} />
 
+            {/* Google Forms Style Header Banner (Image 1) */}
+            {form?.headerImage && (
+              <div style={{
+                width: 'calc(100% + 5rem)',
+                margin: '-3rem -2.5rem 2.25rem -2.5rem',
+                maxHeight: '260px',
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                <img 
+                  src={form.headerImage} 
+                  alt={form.title} 
+                  style={{ width: '100%', height: '100%', maxHeight: '260px', objectFit: 'cover', display: 'block' }} 
+                />
+              </div>
+            )}
+
             {/* Title & Description */}
             <div style={{ marginBottom: '2.5rem' }}>
               <h1 style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', margin: '0 0 0.85rem 0', lineHeight: 1.25 }}>

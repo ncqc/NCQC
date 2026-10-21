@@ -44,6 +44,40 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  /* URL Rewrites for Submissions Hub (Supports all URL variations) */
+  async rewrites() {
+    return [
+      {
+        source: '/Submissions%20Hub',
+        destination: '/submissions-hub',
+      },
+      {
+        source: '/Submissions Hub',
+        destination: '/submissions-hub',
+      },
+      {
+        source: '/Submissions-Hub',
+        destination: '/submissions-hub',
+      },
+      {
+        source: '/submissions-hub',
+        destination: '/submissions-hub',
+      },
+      {
+        source: '/submissions%20hub',
+        destination: '/submissions-hub',
+      },
+      {
+        source: '/Submissionshub',
+        destination: '/submissions-hub',
+      },
+      {
+        source: '/submissionshub',
+        destination: '/submissions-hub',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -60,6 +60,7 @@ export interface CompetitionForm {
   isActive: boolean;
   deadline?: string;
   limitOneResponse?: boolean;
+  headerImage?: string; // Google Forms style header banner (optimized WebP)
   fields: FormField[];
   postSubmitConfig?: PostSubmitConfig;
   createdAt: string;

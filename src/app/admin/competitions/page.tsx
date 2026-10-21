@@ -356,39 +356,73 @@ export default function CompetitionsAdmin() {
                 <div className="comp-img-wrapper" style={{ position: 'relative' }}>
                   <img src={comp.image} alt={stripStyledText(comp.title)} className="comp-img" style={{ objectFit: 'cover' }} onError={(e) => (e.currentTarget.src = '/comp1.jpg')} />
                 </div>
-                <div className="comp-info">
-                  <h3 className="comp-title" style={{ fontSize: '1.25rem' }}><RenderStyledText text={comp.title} /></h3>
-                  <div className="comp-date-wrapper" style={{ fontSize: '0.95rem', lineHeight: '1.5', color: '#64748b', padding: '0 1rem', flex: 1 }}>
-                    <strong>Event:</strong> {comp.eventDate || comp.date}
-                    <br />
-                    <span style={{ fontSize: '0.85rem' }}><RenderStyledText text={comp.shortDesc} /></span>
+                <div className="comp-info" style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem 1.25rem 1.5rem', flex: 1 }}>
+                  <h3 className="comp-title" style={{ fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.65rem', textAlign: 'center', lineHeight: 1.3 }}>
+                    <RenderStyledText text={comp.title} />
+                  </h3>
+                  
+                  {/* Event Date Badge */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '100px',
+                      padding: '0.35rem 0.95rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#475569',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    }}>
+                      <span style={{ color: '#dc2626' }}>📅</span>
+                      <span><strong>Event:</strong> {comp.eventDate || comp.date}</span>
+                    </div>
                   </div>
-                  <div className="comp-divider"></div>
+
+                  {/* Clean Short Description with proper spacing and clamp */}
+                  <p style={{
+                    fontSize: '0.88rem',
+                    lineHeight: 1.55,
+                    color: '#64748b',
+                    margin: '0 0 1.25rem 0',
+                    textAlign: 'center',
+                    flex: 1,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    <RenderStyledText text={comp.shortDesc} />
+                  </p>
+
+                  <div style={{ height: '1px', background: '#f1f5f9', margin: '0 0 1.2rem 0' }} />
                   
                   {/* Action Buttons Row with Star Button */}
-                  <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                     <button
                       onClick={() => handleToggleStar(comp.slug)}
                       style={{
                         background: isStarred 
                           ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
-                          : '#1e293b',
-                        color: isStarred ? '#fff' : '#94a3b8',
-                        border: isStarred ? 'none' : '1px solid #334155',
-                        borderRadius: '8px',
-                        padding: '0.8rem 0.9rem',
+                          : '#ffffff',
+                        color: isStarred ? '#fff' : '#64748b',
+                        border: isStarred ? 'none' : '1px solid #cbd5e1',
+                        borderRadius: '10px',
+                        padding: '0.65rem 0.95rem',
                         cursor: 'pointer',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.35rem',
                         transition: 'all 0.2s ease',
-                        boxShadow: isStarred ? '0 4px 12px rgba(245, 158, 11, 0.35)' : 'none'
+                        boxShadow: isStarred ? '0 4px 12px rgba(245, 158, 11, 0.35)' : '0 1px 2px rgba(0,0,0,0.04)'
                       }}
                       title={isStarred ? "Remove from Home Featured (★)" : "Feature on Home Upcoming Battles (Max 3) (★)"}
                     >
-                      <span style={{ fontSize: '1.05rem', color: isStarred ? '#fff' : '#fbbf24' }}>
+                      <span style={{ fontSize: '0.95rem', color: isStarred ? '#fff' : '#f59e0b' }}>
                         {isStarred ? '★' : '☆'}
                       </span>
                       <span>{isStarred ? 'Featured' : 'Feature'}</span>
@@ -396,16 +430,44 @@ export default function CompetitionsAdmin() {
 
                     <button 
                       onClick={() => router.push(`/admin/competitions/${encodeURIComponent(comp.slug.trim())}`)}
-                      className="comp-btn-modern" 
-                      style={{ background: '#b91c1c', color: '#fff', border: 'none', textAlign: 'center', flex: 1, padding: '0.8rem', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold' }}
+                      style={{ 
+                        background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', 
+                        color: '#fff', 
+                        border: 'none', 
+                        textAlign: 'center', 
+                        flex: 1, 
+                        padding: '0.65rem 1rem', 
+                        cursor: 'pointer', 
+                        borderRadius: '10px', 
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
                     >
-                      ✏️ Edit
+                      <span>✏️</span> Edit
                     </button>
                     
                     <button 
                       onClick={() => handleDelete(comp.slug)}
-                      style={{ background: '#f87171', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 0.85rem', cursor: 'pointer', fontWeight: 'bold' }}
-                      title="Delete"
+                      style={{ 
+                        background: '#fee2e2', 
+                        color: '#dc2626', 
+                        border: '1px solid #fecaca', 
+                        borderRadius: '10px', 
+                        width: '38px',
+                        height: '38px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer', 
+                        fontSize: '0.95rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Delete Competition"
                     >
                       🗑️
                     </button>

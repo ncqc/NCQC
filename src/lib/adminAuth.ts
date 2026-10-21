@@ -14,7 +14,7 @@ export interface LoginResult {
 }
 
 // Check session status with server (verifies HttpOnly signed cookie)
-export async function checkServerSession(): Promise<{ authenticated: boolean; user?: { email: string; role: string } }> {
+export async function checkServerSession(): Promise<{ authenticated: boolean; user?: { email: string; role: string }; concurrentSession?: boolean; error?: string }> {
   try {
     const res = await fetch('/api/admin/auth', {
       method: 'GET',
@@ -24,11 +24,11 @@ export async function checkServerSession(): Promise<{ authenticated: boolean; us
       }
     });
 
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const data = await res.json();
       return { authenticated: data.authenticated, user: data.user };
     }
-    return { authenticated: false };
+    return { authenticated: false, concurrentSession: data.concurrentSession, error: data.error };
   } catch (err) {
     console.warn('Session check warning:', err);
     return { authenticated: false };

@@ -62,6 +62,8 @@ export default function CompetitionFormsAdmin() {
   const [submitButtonColor, setSubmitButtonColor] = useState<string>('#dc2626');
   const [submitButtonGradientEnd, setSubmitButtonGradientEnd] = useState<string>('#991b1b');
   const [submitButtonTextColor, setSubmitButtonTextColor] = useState<string>('#ffffff');
+  const [formHeaderImage, setFormHeaderImage] = useState<string>('');
+  const [isCompressingBanner, setIsCompressingBanner] = useState<boolean>(false);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   
   // Builder field options temporary typing buffer (solves comma bug completely)
@@ -157,6 +159,48 @@ export default function CompetitionFormsAdmin() {
     setTimeout(() => setStatusNotice(null), 4000);
   };
 
+  // Auto-compress uploaded header banner to lightweight WebP (Google Forms style)
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressingBanner(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          let targetWidth = img.width;
+          let targetHeight = img.height;
+
+          if (targetWidth > MAX_WIDTH) {
+            targetHeight = Math.round((targetHeight * MAX_WIDTH) / targetWidth);
+            targetWidth = MAX_WIDTH;
+          }
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+            const webpDataUrl = canvas.toDataURL('image/webp', 0.82);
+            setFormHeaderImage(webpDataUrl);
+            showNotification('Header banner converted to lightweight WebP successfully!');
+          }
+        } catch (err) {
+          console.error('Error compressing image to WebP:', err);
+          setFormHeaderImage(event.target?.result as string);
+        } finally {
+          setIsCompressingBanner(false);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Start designing a new form
   const handleStartNewForm = () => {
     setEditingFormId(null);
@@ -177,6 +221,7 @@ export default function CompetitionFormsAdmin() {
     setSubmitButtonColor('#dc2626');
     setSubmitButtonGradientEnd('#991b1b');
     setSubmitButtonTextColor('#ffffff');
+    setFormHeaderImage('');
     
     // Default crisp fields (matching Image 2)
     const initialFields: FormField[] = [
@@ -217,6 +262,7 @@ export default function CompetitionFormsAdmin() {
     setSubmitButtonColor(form.submitButtonColor || form.accentColor || '#dc2626');
     setSubmitButtonGradientEnd(form.submitButtonGradientEnd || '#991b1b');
     setSubmitButtonTextColor(form.submitButtonTextColor || '#ffffff');
+    setFormHeaderImage(form.headerImage || '');
     setFormFields([...(form.fields || [])]);
 
     const buffers: Record<string, string> = {};
@@ -399,6 +445,7 @@ export default function CompetitionFormsAdmin() {
         submitButtonColor: submitButtonColor || accentColor,
         submitButtonGradientEnd: submitButtonGradientEnd || '#991b1b',
         submitButtonTextColor: submitButtonTextColor || '#ffffff',
+        headerImage: formHeaderImage.trim() || undefined,
         postSubmitConfig: postSubmitConfig
       };
 
@@ -438,6 +485,7 @@ export default function CompetitionFormsAdmin() {
         submitButtonColor: submitButtonColor || accentColor,
         submitButtonGradientEnd: submitButtonGradientEnd || '#991b1b',
         submitButtonTextColor: submitButtonTextColor || '#ffffff',
+        headerImage: formHeaderImage.trim() || undefined,
         postSubmitConfig: postSubmitConfig,
         createdAt: new Date().toISOString().split('T')[0]
       };
@@ -493,7 +541,7 @@ export default function CompetitionFormsAdmin() {
     setPreviewAnswers({});
   };
 
-  // Filter submissions
+  // Filter submissions with resilient search for ID, School Name, Candidate, Phone, and all fields
   const filteredSubmissions = submissions.filter(sub => {
     const rawQ = searchQuery.trim();
     const q = rawQ.toLowerCase();
@@ -503,16 +551,64 @@ export default function CompetitionFormsAdmin() {
     const subRef = ((sub as any).referralId || '').toLowerCase();
     const qClean = q.replace(/[^a-z0-9]/gi, '');
     const idClean = subId.replace(/[^a-z0-9]/gi, '');
+    const refClean = subRef.replace(/[^a-z0-9]/gi, '');
     
     // Exact or partial ID / referral match
     const isIdMatch = q !== '' && (
       subId.includes(q) || 
       subRef.includes(q) || 
-      (qClean.length >= 3 && idClean.includes(qClean))
+      (qClean.length >= 3 && (idClean.includes(qClean) || refClean.includes(qClean)))
     );
 
-    // If admin is specifically searching an ID code, surface it immediately even across scope tabs
-    if (isIdMatch) {
+    // Extract school name and candidate name
+    const schoolName = (
+      sub.data?.['School Name'] || 
+      sub.data?.['School'] || 
+      sub.data?.['School / Institution Name'] || 
+      ''
+    ).toLowerCase();
+
+    const candidateName = (
+      sub.data?.['Name'] || 
+      sub.data?.['Full Name'] || 
+      sub.data?.['Candidate Full Name'] || 
+      sub.data?.['Team Leader Full Name'] || 
+      ''
+    ).toLowerCase();
+
+    // Check phone numbers across all fields and team members (ignoring dashes, spaces, +94)
+    const qDigits = q.replace(/[^0-9]/g, '');
+    let isPhoneMatch = false;
+    if (qDigits.length >= 4) {
+      for (const val of Object.values(sub.data || {})) {
+        if (typeof val === 'string' || typeof val === 'number') {
+          const valDigits = String(val).replace(/[^0-9]/g, '');
+          if (valDigits.includes(qDigits)) {
+            isPhoneMatch = true;
+            break;
+          }
+        }
+      }
+      if (!isPhoneMatch && sub.teamMembers) {
+        for (const tm of sub.teamMembers) {
+          if (tm.contact && tm.contact.replace(/[^0-9]/g, '').includes(qDigits)) {
+            isPhoneMatch = true;
+            break;
+          }
+        }
+      }
+    }
+
+    const isSchoolOrNameMatch = qClean.length >= 2 && (
+      schoolName.includes(q) ||
+      (qClean.length >= 3 && schoolName.replace(/[^a-z0-9]/gi, '').includes(qClean)) ||
+      candidateName.includes(q) ||
+      (qClean.length >= 3 && candidateName.replace(/[^a-z0-9]/gi, '').includes(qClean))
+    );
+
+    // If admin is specifically searching an ID code, phone, school name, or candidate, surface it immediately!
+    const isDirectMatch = isIdMatch || isPhoneMatch || isSchoolOrNameMatch;
+    if (isDirectMatch) {
       return true;
     }
 
@@ -1300,6 +1396,74 @@ export default function CompetitionFormsAdmin() {
                   placeholder="Enter instructions, guidelines, theme details..."
                   style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.9rem', lineHeight: 1.55, resize: 'vertical' }}
                 />
+              </div>
+
+              {/* Google Forms Header Banner Image Upload (Image 1 Feature) */}
+              <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🖼️</span> Form Header Banner Image <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem' }}>(Optional - Google Forms Style)</span>
+                  </label>
+                  {formHeaderImage && (
+                    <button
+                      type="button"
+                      onClick={() => setFormHeaderImage('')}
+                      style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      🗑️ Remove Banner
+                    </button>
+                  )}
+                </div>
+
+                {formHeaderImage ? (
+                  <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', maxHeight: '160px', marginBottom: '0.75rem' }}>
+                    <img 
+                      src={formHeaderImage} 
+                      alt="Form Header Banner Preview" 
+                      style={{ width: '100%', height: '100%', maxHeight: '160px', objectFit: 'cover', display: 'block' }} 
+                    />
+                    <div style={{ position: 'absolute', bottom: '6px', right: '8px', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '6px', backdropFilter: 'blur(4px)' }}>
+                      ⚡ Optimized WebP Banner Active
+                    </div>
+                  </div>
+                ) : null}
+
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.6rem 1rem',
+                    borderRadius: '10px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#334155',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                  }}>
+                    <span>📁</span> {isCompressingBanner ? 'Compressing to WebP...' : 'Upload Banner (Auto WebP)'}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleBannerUpload} 
+                      disabled={isCompressingBanner}
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>or paste image URL:</span>
+                  <input
+                    type="url"
+                    value={formHeaderImage}
+                    onChange={(e) => setFormHeaderImage(e.target.value)}
+                    placeholder="https://example.com/banner.jpg"
+                    style={{ flex: 1, minWidth: '220px', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                  />
+                </div>
+                <small style={{ display: 'block', marginTop: '0.45rem', color: '#94a3b8', fontSize: '0.73rem' }}>
+                  💡 Uploaded images are automatically converted and compressed to lightweight WebP format to keep database load instant.
+                </small>
               </div>
 
               {/* Category & Color */}
@@ -2200,6 +2364,24 @@ export default function CompetitionFormsAdmin() {
             >
               {/* Top Accent Stripe */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: `linear-gradient(90deg, ${accentColor} 0%, #f97316 100%)` }} />
+
+              {/* Form Header Banner (Google Forms Style - Image 1) */}
+              {formHeaderImage ? (
+                <div style={{
+                  width: 'calc(100% + 4.5rem)',
+                  margin: '-2.5rem -2.25rem 1.75rem -2.25rem',
+                  maxHeight: '220px',
+                  overflow: 'hidden',
+                  borderRadius: '24px 24px 0 0',
+                  position: 'relative'
+                }}>
+                  <img 
+                    src={formHeaderImage} 
+                    alt="Form Header Banner" 
+                    style={{ width: '100%', height: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} 
+                  />
+                </div>
+              ) : null}
 
               {/* Form Title & Subtitle */}
               <div style={{ marginBottom: '2.5rem' }}>

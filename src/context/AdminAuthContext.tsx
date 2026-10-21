@@ -35,12 +35,42 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       setUser(result.user);
     } else {
       setUser(null);
+      if (result.concurrentSession) {
+        alert('⚠️ Session Terminated: Your administrator account was accessed from another device. You have been automatically logged out on this device.');
+        window.location.href = '/admin/login';
+      }
     }
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
     refreshSession();
+
+    // Heartbeat check every 15 seconds to ensure single active device session
+    const interval = setInterval(async () => {
+      const result = await checkServerSession();
+      if (!result.authenticated && result.concurrentSession) {
+        setUser(null);
+        alert('⚠️ Session Terminated: Your administrator account was accessed from another device. You have been automatically logged out on this device.');
+        window.location.href = '/admin/login';
+      }
+    }, 15000);
+
+    const onFocus = () => {
+      checkServerSession().then(result => {
+        if (!result.authenticated && result.concurrentSession) {
+          setUser(null);
+          alert('⚠️ Session Terminated: Your administrator account was accessed from another device.');
+          window.location.href = '/admin/login';
+        }
+      });
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [refreshSession]);
 
   const handleLogin = async (email: string, pass: string, rememberMe: boolean = true): Promise<LoginResult> => {

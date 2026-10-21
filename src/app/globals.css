@@ -2537,10 +2537,10 @@ h6 {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 150px;
-    height: 150px;
-    margin-top: -75px;
-    margin-left: -75px;
+    width: 220px;
+    height: 220px;
+    margin-top: -110px;
+    margin-left: -110px;
     transform-style: preserve-3d;
     transform: translateZ(0);
     display: flex;
@@ -2566,10 +2566,10 @@ h6 {
 
 .gallery-center-glow {
     position: absolute;
-    width: 170px;
-    height: 170px;
+    width: 250px;
+    height: 250px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(220, 38, 38, 0.45) 0%, rgba(220, 38, 38, 0.12) 55%, transparent 72%);
+    background: radial-gradient(circle, rgba(220, 38, 38, 0.5) 0%, rgba(220, 38, 38, 0.15) 55%, transparent 72%);
     pointer-events: none;
     transform: translateZ(-2px);
     animation: pulseCoreGlow 4s ease-in-out infinite alternate;
@@ -2587,13 +2587,13 @@ h6 {
 }
 
 .gallery-center-logo {
-    width: 120px;
-    height: 120px;
+    width: 195px;
+    height: 195px;
     object-fit: contain;
     position: relative;
     pointer-events: none;
     transform: translateZ(0);
-    filter: drop-shadow(0 0 16px rgba(220, 38, 38, 0.8));
+    filter: drop-shadow(0 0 24px rgba(220, 38, 38, 0.85)) drop-shadow(0 6px 14px rgba(0,0,0,0.5));
     animation: floatCenterCore 4s ease-in-out infinite;
 }
 
@@ -2841,20 +2841,20 @@ h6 {
     }
 
     .gallery-center-pillar {
-        width: 110px;
-        height: 110px;
-        margin-top: -55px;
-        margin-left: -55px;
+        width: 150px;
+        height: 150px;
+        margin-top: -75px;
+        margin-left: -75px;
     }
 
     .gallery-center-logo {
-        width: 85px;
-        height: 85px;
+        width: 135px;
+        height: 135px;
     }
 
     .gallery-center-glow {
-        width: 130px;
-        height: 130px;
+        width: 180px;
+        height: 180px;
     }
 }
 
@@ -2929,20 +2929,20 @@ h6 {
     }
 
     .gallery-center-pillar {
-        width: 80px;
-        height: 80px;
-        margin-top: -40px;
-        margin-left: -40px;
+        width: 115px;
+        height: 115px;
+        margin-top: -57px;
+        margin-left: -57px;
     }
 
     .gallery-center-logo {
-        width: 60px;
-        height: 60px;
+        width: 100px;
+        height: 100px;
     }
 
     .gallery-center-glow {
-        width: 90px;
-        height: 90px;
+        width: 135px;
+        height: 135px;
     }
 
     .about-box {

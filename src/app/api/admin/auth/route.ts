@@ -3,8 +3,16 @@ import crypto from 'crypto';
 
 // Server-side environment secrets (never exposed to client bundle)
 const SECRET = process.env.ADMIN_AUTH_SECRET || '000c6ccab81a2d69f0ef3b470b72907afee36d52ddcf2ce6818034032a759112';
+const DB_BASE = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 'https://ncqc-a787e-default-rtdb.firebaseio.com';
 
 const ADMIN_ACCOUNTS: Record<string, { email: string; hashes: string[]; role: string }> = {
+  'sadeeshmmal@gmail.com': {
+    email: 'sadeeshmmal@gmail.com',
+    hashes: [
+      '45bf00e7e7a00725183c14884b3ec477c118dc10ec8bc2308d7f8d3dd8bec6ff' // sadeesh@123
+    ],
+    role: 'Super Admin'
+  },
   'kemitharandinu@gmail.com': {
     email: 'kemitharandinu@gmail.com',
     hashes: [
@@ -22,13 +30,42 @@ const ADMIN_ACCOUNTS: Record<string, { email: string; hashes: string[]; role: st
   }
 };
 
-// In-Memory Rate Limiter (IP + Email tracking)
-interface RateLimitEntry {
-  attempts: number;
-  lockedUntil: number;
-}
-const rateLimitMap = new Map<string, RateLimitEntry>();
+// Single-device active session enforcement (In-memory + Firebase sync)
+const activeSessionsMap = new Map<string, string>(); // email -> sessionId
 
+async function getActiveSessionId(email: string): Promise<string | null> {
+  const normalized = email.toLowerCase().trim();
+  if (activeSessionsMap.has(normalized)) {
+    return activeSessionsMap.get(normalized)!;
+  }
+  try {
+    const sanitizedEmail = normalized.replace(/[.#$[\]]/g, '_');
+    const res = await fetch(`${DB_BASE}/admin_active_sessions/${sanitizedEmail}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.sessionId) {
+        activeSessionsMap.set(normalized, data.sessionId);
+        return data.sessionId;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+async function setActiveSessionId(email: string, sessionId: string): Promise<void> {
+  const normalized = email.toLowerCase().trim();
+  activeSessionsMap.set(normalized, sessionId);
+  try {
+    const sanitizedEmail = normalized.replace(/[.#$[\]]/g, '_');
+    await fetch(`${DB_BASE}/admin_active_sessions/${sanitizedEmail}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, lastLogin: Date.now() })
+    });
+  } catch {}
+}
+
+const rateLimitMap = new Map<string, { attempts: number; lockedUntil: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
 
@@ -135,6 +172,20 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.json({ authenticated: false }, { status: 401 });
     res.cookies.delete('ncqc_admin_token');
     return res;
+  }
+
+  // Single-device active session enforcement: check if another device logged in
+  if (payload.sessionId) {
+    const activeSessionId = await getActiveSessionId(payload.email);
+    if (activeSessionId && activeSessionId !== payload.sessionId) {
+      const res = NextResponse.json({ 
+        authenticated: false, 
+        concurrentSession: true,
+        error: 'Session Terminated: This administrator account was logged in from another device.' 
+      }, { status: 401 });
+      res.cookies.delete('ncqc_admin_token');
+      return res;
+    }
   }
 
   return NextResponse.json({
@@ -257,12 +308,16 @@ export async function POST(req: NextRequest) {
     // 3. Clear rate limit on successful authentication
     clearRateLimit(rateKey);
 
-    // 4. Generate signed cryptographic token
+    // 4. Generate unique sessionId and register active device session
+    const sessionId = crypto.randomUUID();
+    await setActiveSessionId(normalizedEmail, sessionId);
+
     const durationMs = rememberMe ? 7 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
     const now = Date.now();
     const sessionPayload = {
       email: adminRecord.email,
       role: adminRecord.role,
+      sessionId,
       iat: now,
       exp: now + durationMs
     };
