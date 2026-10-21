@@ -25,6 +25,10 @@ export default async function GalleryPage() {
           <div className="gallery-wrapper reveal-fade up is-visible" style={{ transform: 'scale(0.8)', margin: '2rem 0 5rem 0' }}>
               <div className="gallery-3d-container">
                   <div className="gallery-spinner">
+                    <div className="gallery-center-pillar">
+                      <div className="gallery-center-glow" />
+                      <img src="/bar.png" alt="NCQC Center Emblem" className="gallery-center-logo" />
+                    </div>
                     {heroImages.slice(0, 6).map((img, index) => (
                       <div key={index} className="gallery-item" style={{ '--i': index + 1 } as React.CSSProperties}><img src={img} alt={`Gallery ${index}`} /></div>
                     ))}

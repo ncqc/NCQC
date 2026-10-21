@@ -59,6 +59,17 @@ export default function ContactPage() {
                             </a>
                         </div>
                     </div>
+
+                    <div className="contact-card reveal-fade up delay-3 is-visible">
+                        <div className="contact-role">Official Society Email</div>
+                        <h3 className="contact-name">Nalanda College Quiz Club</h3>
+                        <div className="contact-details">
+                            <a href="mailto:nalandaquizclub@gmail.com" className="contact-link">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                                nalandaquizclub@gmail.com
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

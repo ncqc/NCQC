@@ -183,6 +183,10 @@ export default async function Home() {
               <div className="gallery-wrapper reveal-fade up" style={{ transform: 'scale(0.7)', margin: '-2rem 0' }}>
                   <div className="gallery-3d-container">
                       <div className="gallery-spinner">
+                          <div className="gallery-center-pillar">
+                            <div className="gallery-center-glow" />
+                            <img src="/bar.png" alt="NCQC Center Emblem" className="gallery-center-logo" />
+                          </div>
                           {heroImages.slice(0, 6).map((img, index) => (
                             <div key={index} className="gallery-item" style={{ '--i': index + 1 } as React.CSSProperties}>
                               <img src={img} alt={`Gallery ${index}`} />
