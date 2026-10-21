@@ -67,17 +67,38 @@ export default function CompetitionRegistrationPage() {
       checkDeadline(matchedComp.deadline || matchedComp.date);
     }
 
+    const isFormMatchForComp = (f: CompetitionForm, targetSlug: string) => {
+      const compSlugLower = targetSlug.trim().toLowerCase();
+      const fCompSlug = (f.competitionSlug || '').trim().toLowerCase();
+      const fSlug = (f.slug || '').trim().toLowerCase();
+      const fId = (f.id || '').trim().toLowerCase();
+      return (
+        (fCompSlug && (fCompSlug === compSlugLower || fCompSlug === targetSlug)) ||
+        fSlug === compSlugLower ||
+        fId === compSlugLower ||
+        (compSlugLower.length >= 4 && fSlug.includes(compSlugLower)) ||
+        (fSlug.length >= 4 && compSlugLower.includes(fSlug))
+      );
+    };
+
+    // 1b. Check client localStorage cache first
+    try {
+      const localFormsStr = localStorage.getItem('ncqc_competition_forms');
+      if (localFormsStr) {
+        const localForms: CompetitionForm[] = JSON.parse(localFormsStr);
+        const localMatch = localForms.find(f => isFormMatchForComp(f, slug));
+        if (localMatch && localMatch.isActive !== false) {
+          setForm(localMatch);
+        }
+      }
+    } catch {}
+
     // 2. Load linked form directly from Firebase Cloud Database
     getFirebaseForms().then(firebaseForms => {
       if (firebaseForms && firebaseForms.length > 0) {
-        const compSlugLower = slug.trim().toLowerCase();
-        const matchedForm = firebaseForms.find(f => {
-          if (!f.competitionSlug) return false;
-          const fSlugLower = decodeURIComponent(f.competitionSlug).trim().toLowerCase();
-          return fSlugLower === compSlugLower || f.competitionSlug === slug;
-        });
+        const matchedForm = firebaseForms.find(f => isFormMatchForComp(f, slug));
 
-        if (matchedForm && matchedForm.isActive) {
+        if (matchedForm && matchedForm.isActive !== false) {
           setForm(matchedForm);
           return;
         }
@@ -217,8 +238,12 @@ export default function CompetitionRegistrationPage() {
       competitionSlug: slug,
       competitionTitle: competition ? stripStyledText(competition.title) : form.competitionTitle || 'NCQC Competition',
       scope: form.scope || 'inter-school',
-      category: form.category || 'Senior (Grade 10 - 13)',
-      submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      submittedAt: (() => {
+        const now = new Date();
+        const d = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+        const t = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Colombo', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        return `${d} ${t}`;
+      })(),
       status: 'confirmed' as const,
       data: { 
         ...formValues,

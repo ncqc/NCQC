@@ -5,6 +5,35 @@ import Link from 'next/link';
 import { FormSubmission } from '@/data/forms';
 import { getFirebaseSubmissions } from '@/lib/firebaseForms';
 
+const formatSubmissionDateTime = (raw?: string) => {
+  if (!raw) return { date: 'Recently', time: 'Just now' };
+  try {
+    if (raw.includes('AM') || raw.includes('PM')) {
+      const parts = raw.split(' ');
+      const datePart = parts[0];
+      const timePart = parts.slice(1).join(' ');
+      return { date: datePart, time: timePart };
+    }
+    let isoString = raw.includes('T') ? raw : raw.replace(' ', 'T');
+    if (!isoString.endsWith('Z') && !isoString.includes('+')) {
+      isoString += ':00Z';
+    }
+    const d = new Date(isoString);
+    if (!isNaN(d.getTime())) {
+      const date = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+      const time = d.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Colombo',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      return { date, time };
+    }
+  } catch {}
+  return { date: raw, time: '' };
+};
+
 export default function SubmissionsHubPage() {
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -43,7 +72,6 @@ export default function SubmissionsHubPage() {
   // Filter ONLY matches when search query is entered (Strict Privacy: Never reveal all records)
   const q = searchQuery.trim().toLowerCase();
   const qClean = q.replace(/[^a-z0-9]/gi, '');
-  const qDigits = q.replace(/[^0-9]/g, '');
 
   const matchedSubmissions = !q ? [] : submissions.filter((sub) => {
     const subId = (sub.id || '').toLowerCase();
@@ -51,66 +79,18 @@ export default function SubmissionsHubPage() {
     const idClean = subId.replace(/[^a-z0-9]/gi, '');
     const refClean = subRef.replace(/[^a-z0-9]/gi, '');
 
-    // 1. Registration / Referral Code Match
+    // 1. STRICT ID-ONLY MATCH: Only the private Registration / Referral ID reveals the submission
     const isIdMatch = (
+      subId === q ||
+      subRef === q ||
       subId.includes(q) ||
       subRef.includes(q) ||
       (qClean.length >= 3 && (idClean.includes(qClean) || refClean.includes(qClean)))
     );
 
-    // 2. School Name Match
-    const schoolName = (
-      sub.data?.['School Name'] ||
-      sub.data?.['School'] ||
-      sub.data?.['School / Institution Name'] ||
-      sub.data?.['Institute Name'] ||
-      ''
-    ).toLowerCase();
-
-    const isSchoolMatch = qClean.length >= 2 && (
-      schoolName.includes(q) ||
-      (qClean.length >= 3 && schoolName.replace(/[^a-z0-9]/gi, '').includes(qClean))
-    );
-
-    // 3. Candidate / Team Leader Name Match
-    const candidateName = (
-      sub.data?.['Name'] ||
-      sub.data?.['Full Name'] ||
-      sub.data?.['Candidate Full Name'] ||
-      sub.data?.['Team Leader Full Name'] ||
-      ''
-    ).toLowerCase();
-
-    const isCandidateMatch = qClean.length >= 3 && (
-      candidateName.includes(q) ||
-      candidateName.replace(/[^a-z0-9]/gi, '').includes(qClean)
-    );
-
-    // 4. Phone number match
-    let isPhoneMatch = false;
-    if (qDigits.length >= 5) {
-      for (const val of Object.values(sub.data || {})) {
-        if (typeof val === 'string' || typeof val === 'number') {
-          if (String(val).replace(/[^0-9]/g, '').includes(qDigits)) {
-            isPhoneMatch = true;
-            break;
-          }
-        }
-      }
-      if (!isPhoneMatch && sub.teamMembers) {
-        for (const tm of sub.teamMembers) {
-          if (tm.contact && tm.contact.replace(/[^0-9]/g, '').includes(qDigits)) {
-            isPhoneMatch = true;
-            break;
-          }
-        }
-      }
-    }
-
-    const matchesQuery = isIdMatch || isSchoolMatch || isCandidateMatch || isPhoneMatch;
     const matchesStatus = filterStatus === 'all' || sub.status === filterStatus;
 
-    return matchesQuery && matchesStatus;
+    return isIdMatch && matchesStatus;
   });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -240,7 +220,7 @@ export default function SubmissionsHubPage() {
               </div>
               <div style="text-align:right;">
                 <span style="font-size:11px;font-weight:700;color:#64748b;">SUBMITTED TIMESTAMP</span>
-                <div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:4px;">${sub.submittedAt || new Date().toISOString()}</div>
+                <div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:4px;">${formatSubmissionDateTime(sub.submittedAt).date} ${formatSubmissionDateTime(sub.submittedAt).time ? `(${formatSubmissionDateTime(sub.submittedAt).time})` : ''}</div>
               </div>
             </div>
             <div>${fieldsHtml}</div>
@@ -384,7 +364,7 @@ export default function SubmissionsHubPage() {
             margin: '0 auto',
             lineHeight: 1.65
           }}>
-            Enter your official <strong style={{ color: '#f8fafc' }}>Registration ID code</strong> (e.g. <span style={{ fontFamily: 'monospace', color: '#f87171' }}>REG-2026-XXXXXX</span>) or registered <strong style={{ color: '#f8fafc' }}>School Name</strong> below to check real-time approval status and access your verified registration entry pass.
+            Enter your official <strong style={{ color: '#f8fafc' }}>Registration ID code</strong> (e.g. <span style={{ fontFamily: 'monospace', color: '#f87171' }}>REG-2026-XXXXXX</span>) below to check real-time approval status and access your verified registration entry pass.
           </p>
         </div>
 
@@ -417,7 +397,7 @@ export default function SubmissionsHubPage() {
                   setSearchQuery(e.target.value);
                   setHasSearched(true);
                 }}
-                placeholder="Enter Registration ID (REG-2026-XXXXXX), School Name, or Phone..."
+                placeholder="Enter Registration ID (e.g. REG-2026-XXXXXX)..."
                 style={{
                   width: '100%',
                   padding: '1.05rem 1.25rem 1.05rem 3.25rem',
@@ -571,7 +551,7 @@ export default function SubmissionsHubPage() {
             </h3>
 
             <p style={{ color: '#94a3b8', fontSize: '0.98rem', maxWidth: '620px', margin: '0 auto 2.5rem', lineHeight: 1.65 }}>
-              To ensure participant privacy, school registrations are confidential and are never listed in public tables. Type your <strong style={{ color: '#f8fafc' }}>Registration ID</strong> code or <strong style={{ color: '#f8fafc' }}>School Name</strong> in the search bar above to securely reveal your entry.
+              To ensure participant privacy, registrations are strictly ID-protected and are never listed in public tables. Type your official <strong style={{ color: '#f8fafc' }}>Registration ID code</strong> (e.g. <span style={{ fontFamily: 'monospace', color: '#f87171' }}>REG-2026-XXXXXX</span>) in the search bar above to securely reveal your entry.
             </p>
 
             {/* Step-by-Step Guidance */}
@@ -601,9 +581,9 @@ export default function SubmissionsHubPage() {
                 borderRadius: '16px'
               }}>
                 <div style={{ fontSize: '1.6rem', marginBottom: '0.5rem' }}>2️⃣</div>
-                <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem', marginBottom: '0.35rem' }}>Search Your School</div>
+                <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.95rem', marginBottom: '0.35rem' }}>Enter Registration ID</div>
                 <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
-                  Type your Registration ID or School Name into the search box above to isolate your record.
+                  Type your official Registration ID code into the search box above to isolate your verified record.
                 </div>
               </div>
 
@@ -652,7 +632,7 @@ export default function SubmissionsHubPage() {
               No Matching Registration Found
             </h3>
             <p style={{ color: '#94a3b8', fontSize: '0.95rem', maxWidth: '580px', margin: '0 auto 1.75rem', lineHeight: 1.6 }}>
-              We could not find an official entry matching <span style={{ color: '#f87171', fontWeight: 800 }}>"{searchQuery}"</span>. Please double-check for typing errors in your Registration ID or School Name.
+              We could not find an official entry matching ID <span style={{ color: '#f87171', fontWeight: 800 }}>"{searchQuery}"</span>. Please double-check for typing errors in your Registration ID code.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
@@ -806,8 +786,39 @@ export default function SubmissionsHubPage() {
                       <h3 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', margin: '0.2rem 0 0.5rem 0', lineHeight: 1.25 }}>
                         {sub.formTitle || sub.competitionTitle || 'Official Competition Registration'}
                       </h3>
-                      <div style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
-                        Submitted on: <strong style={{ color: '#e2e8f0' }}>{sub.submittedAt || 'Confirmed in Database'}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.84rem' }}>Submitted:</span>
+                        {(() => {
+                          const { date, time } = formatSubmissionDateTime(sub.submittedAt);
+                          return (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ 
+                                color: '#f8fafc', 
+                                fontWeight: 800, 
+                                fontSize: '0.84rem',
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(255, 255, 255, 0.12)'
+                              }}>
+                                📅 {date}
+                              </span>
+                              {time && (
+                                <span style={{ 
+                                  color: '#f87171', 
+                                  fontWeight: 800, 
+                                  fontSize: '0.82rem',
+                                  background: 'rgba(220, 38, 38, 0.15)',
+                                  padding: '0.2rem 0.55rem',
+                                  borderRadius: '6px',
+                                  border: '1px solid rgba(220, 38, 38, 0.3)'
+                                }}>
+                                  🕒 {time}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 

@@ -78,17 +78,26 @@ export async function getFirebaseForms(): Promise<CompetitionForm[]> {
   return formsList;
 }
 
+function cleanForFirebase<T>(obj: T): T {
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch {
+    return obj;
+  }
+}
+
 /**
  * Save or update a form DIRECTLY in the Firebase Cloud Database
  */
 export async function saveFirebaseForm(form: CompetitionForm): Promise<boolean> {
   const sanitizedId = form.id.replace(/[.#$[\]]/g, '_');
+  const cleanedForm = cleanForFirebase(form);
   let saved = false;
 
   // 1. Save directly to Realtime Database (SDK + REST)
   try {
     if (rtdb) {
-      await set(ref(rtdb, `forms/${sanitizedId}`), form);
+      await set(ref(rtdb, `forms/${sanitizedId}`), cleanedForm);
       saved = true;
     }
   } catch (e) {
@@ -99,7 +108,7 @@ export async function saveFirebaseForm(form: CompetitionForm): Promise<boolean> 
     await fetch(`${DB_BASE}/forms/${sanitizedId}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+      body: JSON.stringify(cleanedForm)
     });
     saved = true;
   } catch {}
@@ -107,7 +116,7 @@ export async function saveFirebaseForm(form: CompetitionForm): Promise<boolean> 
   // 2. Save directly to Cloud Firestore
   try {
     if (db) {
-      await setDoc(doc(db, 'forms', sanitizedId), form);
+      await setDoc(doc(db, 'forms', sanitizedId), cleanedForm);
       saved = true;
     }
   } catch (e) {
@@ -235,12 +244,13 @@ export async function getFirebaseSubmissions(): Promise<FormSubmission[]> {
  */
 export async function saveFirebaseSubmission(sub: FormSubmission): Promise<boolean> {
   const sanitizedId = sub.id.replace(/[.#$[\]]/g, '_');
+  const cleanedSub = cleanForFirebase(sub);
   let saved = false;
 
   // 1. Save directly to Realtime Database
   try {
     if (rtdb) {
-      await set(ref(rtdb, `submissions/${sanitizedId}`), sub);
+      await set(ref(rtdb, `submissions/${sanitizedId}`), cleanedSub);
       saved = true;
     }
   } catch (e) {
@@ -251,7 +261,7 @@ export async function saveFirebaseSubmission(sub: FormSubmission): Promise<boole
     await fetch(`${DB_BASE}/submissions/${sanitizedId}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub)
+      body: JSON.stringify(cleanedSub)
     });
     saved = true;
   } catch {}
@@ -259,7 +269,7 @@ export async function saveFirebaseSubmission(sub: FormSubmission): Promise<boole
   // 2. Save directly to Cloud Firestore
   try {
     if (db) {
-      await setDoc(doc(db, 'submissions', sanitizedId), sub);
+      await setDoc(doc(db, 'submissions', sanitizedId), cleanedSub);
       saved = true;
     }
   } catch (e) {

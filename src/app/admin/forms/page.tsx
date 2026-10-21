@@ -25,6 +25,35 @@ import {
   syncLocalSubmissionsToFirebase
 } from '@/lib/firebaseForms';
 
+export const formatSubmissionDateTime = (raw?: string) => {
+  if (!raw) return { date: 'Recently', time: 'Just now' };
+  try {
+    if (raw.includes('AM') || raw.includes('PM')) {
+      const parts = raw.split(' ');
+      const datePart = parts[0];
+      const timePart = parts.slice(1).join(' ');
+      return { date: datePart, time: timePart };
+    }
+    let isoString = raw.includes('T') ? raw : raw.replace(' ', 'T');
+    if (!isoString.endsWith('Z') && !isoString.includes('+')) {
+      isoString += ':00Z';
+    }
+    const d = new Date(isoString);
+    if (!isNaN(d.getTime())) {
+      const date = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+      const time = d.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Colombo',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      return { date, time };
+    }
+  } catch {}
+  return { date: raw, time: '' };
+};
+
 export default function CompetitionFormsAdmin() {
   const [activeTab, setActiveTab] = useState<'forms' | 'builder' | 'submissions'>('forms');
   const [forms, setForms] = useState<CompetitionForm[]>([]);
@@ -457,6 +486,9 @@ export default function CompetitionFormsAdmin() {
 
       const latestForms = await getFirebaseForms();
       setForms(latestForms);
+      try {
+        localStorage.setItem('ncqc_competition_forms', JSON.stringify(latestForms));
+      } catch {}
       setIsFirebaseSyncing(false);
 
       showNotification(isStandaloneForm
@@ -498,6 +530,9 @@ export default function CompetitionFormsAdmin() {
 
       const latestForms = await getFirebaseForms();
       setForms(latestForms);
+      try {
+        localStorage.setItem('ncqc_competition_forms', JSON.stringify(latestForms));
+      } catch {}
       setIsFirebaseSyncing(false);
 
       showNotification(isStandaloneForm
@@ -517,6 +552,13 @@ export default function CompetitionFormsAdmin() {
     const linkedCompTitle = linkedComp ? stripStyledText(linkedComp.title) : undefined;
     const testRef = `REG-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
+    const getRealDateTimeString = () => {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+      const timePart = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Colombo', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      return `${datePart} ${timePart}`;
+    };
+
     const newSub: FormSubmission = {
       id: testRef,
       referralId: testRef,
@@ -524,7 +566,7 @@ export default function CompetitionFormsAdmin() {
       formTitle: formTitle,
       scope: formScope,
       category: formCategory,
-      submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      submittedAt: getRealDateTimeString(),
       status: 'confirmed',
       data: { 
         ...previewAnswers,
@@ -955,7 +997,7 @@ export default function CompetitionFormsAdmin() {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f8fafc;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:12px;">
               <div><strong>Scope:</strong> ${sub.scope.toUpperCase()}</div>
               <div><strong>Category:</strong> ${sub.category || 'Senior (Grade 10 - 13)'}</div>
-              <div><strong>Submitted Date:</strong> ${sub.submittedAt || '-'}</div>
+              <div><strong>Submitted Date &amp; Time:</strong> ${formatSubmissionDateTime(sub.submittedAt).date} ${formatSubmissionDateTime(sub.submittedAt).time ? `(${formatSubmissionDateTime(sub.submittedAt).time})` : ''}</div>
               <div><strong>Database:</strong> Verified via Firebase Database</div>
             </div>
 
@@ -2975,7 +3017,7 @@ export default function CompetitionFormsAdmin() {
                     <th style={{ padding: '1rem' }}>Candidate / School</th>
                     <th style={{ padding: '1rem' }}>Email / Contact</th>
                     <th style={{ padding: '1rem' }}>Form Title</th>
-                    <th style={{ padding: '1rem' }}>Date</th>
+                    <th style={{ padding: '1rem' }}>Submission Date &amp; Time</th>
                     <th style={{ padding: '1rem' }}>Status</th>
                     <th style={{ padding: '1rem', textAlign: 'right' }}>Action</th>
                   </tr>
@@ -3050,8 +3092,41 @@ export default function CompetitionFormsAdmin() {
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.8rem' }}>
-                          {sub.submittedAt}
+                        <td style={{ padding: '1rem', whiteSpace: 'nowrap' }}>
+                          {(() => {
+                            const { date, time } = formatSubmissionDateTime(sub.submittedAt);
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <span style={{ 
+                                  fontSize: '0.85rem', 
+                                  fontWeight: 800, 
+                                  color: '#0f172a',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem'
+                                }}>
+                                  <span>📅</span> {date}
+                                </span>
+                                {time && (
+                                  <span style={{ 
+                                    fontSize: '0.78rem', 
+                                    fontWeight: 800, 
+                                    color: '#dc2626',
+                                    background: '#fef2f2',
+                                    border: '1px solid #fee2e2',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '6px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                    width: 'fit-content'
+                                  }}>
+                                    <span>🕒</span> {time}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <span style={{ 
@@ -3163,9 +3238,48 @@ export default function CompetitionFormsAdmin() {
               </div>
             </div>
 
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0 1.25rem 0' }}>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0 0.85rem 0' }}>
               {selectedSubmission.formTitle}
             </h2>
+
+            {/* Prominent Real Submission Date & Time Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+              {(() => {
+                const { date, time } = formatSubmissionDateTime(selectedSubmission.submittedAt);
+                return (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.5rem 0.95rem',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                  }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#334155', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span>📅</span> Real Submitted Date: <strong style={{ color: '#0f172a' }}>{date}</strong>
+                    </span>
+                    {time && (
+                      <span style={{ 
+                        fontSize: '0.82rem', 
+                        fontWeight: 800, 
+                        color: '#dc2626', 
+                        background: '#fef2f2', 
+                        border: '1px solid #fecaca',
+                        padding: '0.2rem 0.65rem', 
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}>
+                        <span>🕒</span> {time}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
 
             {/* Key Information Grid (Clean & Deduplicated) */}
             <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>

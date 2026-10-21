@@ -24,14 +24,58 @@ export default function StandalonePublicFormPage() {
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
+  const normalizeSlug = (s: string) => 
+    decodeURIComponent(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
   useEffect(() => {
     if (!slug) return;
+    const targetSlug = normalizeSlug(slug);
 
-    // Load directly from Firebase Database (Real Cloud)
+    // 1. Check local storage first (instant client cache)
+    try {
+      const localFormsStr = localStorage.getItem('ncqc_competition_forms');
+      if (localFormsStr) {
+        const localForms: CompetitionForm[] = JSON.parse(localFormsStr);
+        const isFormMatch = (f: CompetitionForm) => {
+          const fSlug = normalizeSlug(f.slug);
+          const fTitle = normalizeSlug(f.title);
+          return (
+            fSlug === targetSlug ||
+            f.id === slug ||
+            fTitle === targetSlug ||
+            f.slug.toLowerCase() === slug.toLowerCase() ||
+            (targetSlug.length >= 4 && (fSlug.includes(targetSlug) || fTitle.includes(targetSlug))) ||
+            (fSlug.length >= 4 && targetSlug.includes(fSlug))
+          );
+        };
+
+        const localMatch = localForms.find(f => isFormMatch(f));
+        if (localMatch && localMatch.isActive !== false) {
+          setForm(localMatch);
+        }
+      }
+    } catch (e) {
+      console.warn('Local forms cache notice:', e);
+    }
+
+    // 2. Load directly from Firebase Database (Real Cloud)
     getFirebaseForms().then(firebaseForms => {
       if (firebaseForms && firebaseForms.length > 0) {
-        const match = firebaseForms.find(f => f.slug.toLowerCase() === slug.toLowerCase() || f.id === slug);
-        if (match && match.isActive) {
+        const isFormMatch = (f: CompetitionForm) => {
+          const fSlug = normalizeSlug(f.slug);
+          const fTitle = normalizeSlug(f.title);
+          return (
+            fSlug === targetSlug ||
+            f.id === slug ||
+            fTitle === targetSlug ||
+            f.slug.toLowerCase() === slug.toLowerCase() ||
+            (targetSlug.length >= 4 && (fSlug.includes(targetSlug) || fTitle.includes(targetSlug))) ||
+            (fSlug.length >= 4 && targetSlug.includes(fSlug))
+          );
+        };
+
+        const match = firebaseForms.find(f => isFormMatch(f));
+        if (match && match.isActive !== false) {
           setForm(match);
           return;
         }
@@ -41,13 +85,15 @@ export default function StandalonePublicFormPage() {
     });
 
     // Default template if fresh
-    setForm({
-      id: 'general_invite_' + Date.now(),
-      slug: slug || 'general-invitation-form',
-      title: 'Annual Quiz Day & Invitational Meet | Registration',
-      description: 'Official invitation and RSVP registration form for the Nalanda College Quiz Club Annual Meet. Please submit team and delegate details below.',
-      scope: 'invitational',
-      category: 'Open Category',
+    setForm(prev => {
+      if (prev && prev.id !== 'general_invite_placeholder') return prev;
+      return {
+        id: 'general_invite_placeholder',
+        slug: slug || 'general-invitation-form',
+        title: 'Annual Quiz Day & Invitational Meet | Registration',
+        description: 'Official invitation and RSVP registration form for the Nalanda College Quiz Club Annual Meet. Please submit team and delegate details below.',
+        scope: 'invitational',
+        category: 'Open Category',
       accentColor: '#dc2626',
       limitOneResponse: true,
       isActive: true,
@@ -71,7 +117,8 @@ export default function StandalonePublicFormPage() {
           teamConfig: { memberCount: 4, includeGrade: true, includePhone: true } 
         }
       ]
-    });
+    };
+  });
   }, [slug]);
 
   // Synchronize team members count strictly to the exact number configured by Admin
@@ -161,6 +208,13 @@ export default function StandalonePublicFormPage() {
     // Generate distinct, high-entropy unique Referral / Registration ID (6 digits)
     const generatedRef = `REG-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
+    const getRealDateTimeString = () => {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' });
+      const timePart = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Colombo', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      return `${datePart} ${timePart}`;
+    };
+
     const newSubmission = {
       id: generatedRef,
       referralId: generatedRef,
@@ -171,7 +225,7 @@ export default function StandalonePublicFormPage() {
       isStandalone: form.isStandalone ?? true,
       scope: form.scope || 'invitational',
       category: form.category || 'Senior (Grade 10 - 13)',
-      submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      submittedAt: getRealDateTimeString(),
       status: 'confirmed' as const,
       data: { 
         ...formValues,
