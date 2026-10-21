@@ -176,10 +176,10 @@ export default function CompetitionRegistrationPage() {
         const leader = teamMembersList[0];
         if (!leader?.name?.trim()) {
           newErrors[field.label] = 'Team Leader name is required.';
-        } else {
+        } else if (field.teamConfig?.enforceExactCount) {
           const emptyIdx = teamMembersList.slice(0, targetCount).findIndex(m => !m.name.trim());
           if (emptyIdx !== -1) {
-            newErrors[field.label] = `All ${targetCount} team members are required. Please enter details for Member ${emptyIdx + 1}.`;
+            newErrors[field.label] = `All ${targetCount} team members are strictly required. Please enter details for Member ${emptyIdx + 1}.`;
           }
         }
       } else {
@@ -217,15 +217,14 @@ export default function CompetitionRegistrationPage() {
       competitionSlug: slug,
       competitionTitle: competition ? stripStyledText(competition.title) : form.competitionTitle || 'NCQC Competition',
       scope: form.scope || 'inter-school',
-      category: form.category || 'Senior',
+      category: form.category || 'Senior (Grade 10 - 13)',
       submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       status: 'confirmed' as const,
       data: { 
         ...formValues,
-        'Referral ID': generatedRef,
         'Registration ID': generatedRef,
         ...(teamMembersList.some(m => m.name.trim()) ? {
-          'Team Members': teamMembersList.filter(m => m.name.trim()).map(m => `${m.role}: ${m.name} (${m.grade || 'N/A'})`).join('; ')
+          'Team Members': teamMembersList.filter(m => m.name.trim()).map(m => `${m.role}: ${m.name}${m.grade ? ` (${m.grade})` : ''}${m.contact ? ` [${m.contact}]` : ''}`).join('; ')
         } : {})
       },
       teamMembers: teamMembersList.filter(m => m.name.trim())
@@ -573,16 +572,19 @@ export default function CompetitionRegistrationPage() {
                         </div>
                         <span
                           style={{
-                            background: '#f1f5f9',
-                            color: '#0f172a',
-                            border: '1px solid #cbd5e1',
+                            background: field.teamConfig?.enforceExactCount ? '#fef2f2' : '#f1f5f9',
+                            color: field.teamConfig?.enforceExactCount ? '#b91c1c' : '#0f172a',
+                            border: `1px solid ${field.teamConfig?.enforceExactCount ? '#fecaca' : '#cbd5e1'}`,
                             padding: '0.4rem 0.85rem',
                             borderRadius: '9999px',
                             fontWeight: 800,
                             fontSize: '0.78rem'
                           }}
                         >
-                          Fixed Squad: {field.teamConfig?.memberCount || 4} Members
+                          {field.teamConfig?.enforceExactCount ? '🔒' : '👥'}{' '}
+                          {field.teamConfig?.enforceExactCount 
+                            ? `Strict Squad: Exactly ${field.teamConfig?.memberCount || 4} Members Required` 
+                            : `Team Squad: Up to ${field.teamConfig?.memberCount || 4} Members`}
                         </span>
                       </div>
 
@@ -608,12 +610,19 @@ export default function CompetitionRegistrationPage() {
                               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: mIdx === 0 ? '#dc2626' : '#334155' }}>
                                 {mIdx === 0 ? '👑 Member 1 (Team Leader)' : `👤 Member ${mIdx + 1}`}
                               </span>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f8fafc', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                Slot {mIdx + 1} of {field.teamConfig?.memberCount || 4}
+                              </span>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                               <div>
                                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.25rem' }}>
-                                  Full Name *
+                                  {mIdx === 0 
+                                    ? 'Full Name (Team Leader) *' 
+                                    : field.teamConfig?.enforceExactCount 
+                                      ? `Full Name (Member ${mIdx + 1}) *` 
+                                      : `Full Name (Member ${mIdx + 1} - Optional)`}
                                 </label>
                                 <input
                                   type="text"

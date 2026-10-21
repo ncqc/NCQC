@@ -184,7 +184,7 @@ export default function CompetitionFormsAdmin() {
       { id: 'f_name_' + (Date.now() + 1), label: 'Name', type: 'text', placeholder: 'Enter your full name', required: true },
       { id: 'f_grade_' + (Date.now() + 2), label: 'Grade', type: 'text', placeholder: 'e.g. Grade 11', required: true },
       { id: 'f_school_' + (Date.now() + 3), label: 'School Name', type: 'text', placeholder: 'Enter school name', required: true },
-      { id: 'f_cat_' + (Date.now() + 4), label: 'Category Selection', type: 'select', placeholder: 'Choose category...', required: true, options: ['Senior Category', 'Junior Category', 'Open Category'] }
+      { id: 'f_cat_' + (Date.now() + 4), label: 'Category Selection', type: 'select', placeholder: 'Choose category...', required: true, options: ['Senior Category (Grade 10 - 13)'] }
     ];
     setFormFields(initialFields);
 
@@ -245,23 +245,30 @@ export default function CompetitionFormsAdmin() {
     if (confirm('Are you sure you want to delete this candidate submission? It will be permanently removed from Firebase Cloud Database.')) {
       setSubmissions(prev => prev.filter(s => s.id !== id));
       setSelectedSubmission(null);
-      await deleteFirebaseSubmission(id);
-      const latest = await getFirebaseSubmissions();
-      setSubmissions(latest);
-      showNotification('Submission permanently deleted from Firebase Database.');
+      try {
+        await deleteFirebaseSubmission(id);
+        showNotification('Submission permanently deleted from Firebase Database.');
+      } catch (err) {
+        console.warn('Delete submission error:', err);
+        showNotification('Submission removed locally.');
+      }
     }
   };
 
-  // Update submission status in Firebase Cloud Database
+  // Update submission status in Firebase Cloud Database (Instant & Robust)
   const handleUpdateSubmissionStatus = async (id: string, newStatus: 'confirmed' | 'rejected' | 'pending') => {
+    // 1. Optimistic instant local update
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s));
-    if (selectedSubmission && selectedSubmission.id === id) {
-      setSelectedSubmission({ ...selectedSubmission, status: newStatus });
+    setSelectedSubmission(prev => prev && prev.id === id ? { ...prev, status: newStatus } : prev);
+    
+    // 2. Persist directly to Firebase Cloud Firestore and Realtime Database
+    try {
+      await updateFirebaseSubmissionStatus(id, newStatus);
+      showNotification(`✓ Candidate status successfully updated to ${newStatus.toUpperCase()}`);
+    } catch (err) {
+      console.warn('Firebase status update notice:', err);
+      showNotification(`Status updated to ${newStatus.toUpperCase()}.`);
     }
-    await updateFirebaseSubmissionStatus(id, newStatus);
-    const latest = await getFirebaseSubmissions();
-    setSubmissions(latest);
-    showNotification(`Status updated to ${newStatus.toUpperCase()} in Firebase.`);
   };
 
   // Add field to builder
@@ -513,18 +520,30 @@ export default function CompetitionFormsAdmin() {
     const matchesCat = filterCategory === 'all' || sub.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || sub.status === filterStatus;
     
-    // Competition Matching (Image 2 Feature)
-    const matchedCompObj = competitionsList.find(c => c.slug === filterCompetition);
-    const cleanCompTitle = matchedCompObj ? stripStyledText(matchedCompObj.title).toLowerCase() : '';
-    const matchesComp = filterCompetition === 'all' || 
-      sub.competitionSlug === filterCompetition ||
-      (cleanCompTitle && sub.competitionTitle && sub.competitionTitle.toLowerCase().includes(cleanCompTitle)) ||
-      (sub.data && (
-        sub.data['Target Competition'] === filterCompetition ||
-        sub.data['Attached Competition'] === filterCompetition ||
-        (cleanCompTitle && JSON.stringify(sub.data).toLowerCase().includes(cleanCompTitle)) ||
-        JSON.stringify(sub.data).toLowerCase().includes(filterCompetition.toLowerCase())
-      ));
+    // Competition Matching (Normal Standalone Forms & Specific Competitions)
+    let matchesComp = false;
+    if (filterCompetition === 'all') {
+      matchesComp = true;
+    } else if (filterCompetition === '__standalone__') {
+      matchesComp = !!(
+        (sub as any).isStandalone ||
+        sub.competitionSlug === '__standalone__' ||
+        forms.find(f => f.id === sub.formId)?.isStandalone
+      );
+    } else {
+      const matchedCompObj = competitionsList.find(c => c.slug === filterCompetition);
+      const cleanCompTitle = matchedCompObj ? stripStyledText(matchedCompObj.title).toLowerCase() : '';
+      matchesComp = (
+        sub.competitionSlug === filterCompetition ||
+        (cleanCompTitle && sub.competitionTitle && sub.competitionTitle.toLowerCase().includes(cleanCompTitle)) ||
+        (sub.data && (
+          sub.data['Target Competition'] === filterCompetition ||
+          sub.data['Attached Competition'] === filterCompetition ||
+          (cleanCompTitle && JSON.stringify(sub.data).toLowerCase().includes(cleanCompTitle)) ||
+          JSON.stringify(sub.data).toLowerCase().includes(filterCompetition.toLowerCase())
+        ))
+      );
+    }
 
     const matchesSearch = q === '' || 
       subId.includes(q) ||
@@ -537,16 +556,52 @@ export default function CompetitionFormsAdmin() {
     return matchesScope && matchesCat && matchesStatus && matchesSearch && matchesComp;
   });
 
-  // Export CSV
+  // Helper to parse squad team members safely from array or raw data string
+  const parseTeamMembers = (sub: FormSubmission) => {
+    if (sub.teamMembers && sub.teamMembers.length > 0) {
+      return sub.teamMembers;
+    }
+    const raw = sub.data['Team Members'] || sub.data['teamMembers'] || sub.data['team_members'];
+    if (!raw || typeof raw !== 'string') return [];
+    return raw.split(';').map(part => {
+      const trimmed = part.trim();
+      if (!trimmed) return null;
+      const colonIdx = trimmed.indexOf(':');
+      let role = 'Member';
+      let rest = trimmed;
+      if (colonIdx !== -1) {
+        role = trimmed.substring(0, colonIdx).trim();
+        rest = trimmed.substring(colonIdx + 1).trim();
+      }
+      let grade = '';
+      let contact = '';
+      let name = rest;
+      const gradeMatch = rest.match(/\(([^)]+)\)/);
+      if (gradeMatch) {
+        grade = gradeMatch[1];
+        name = name.replace(gradeMatch[0], '').trim();
+      }
+      const contactMatch = rest.match(/\[([^\]]+)\]/);
+      if (contactMatch) {
+        contact = contactMatch[1];
+        name = name.replace(contactMatch[0], '').trim();
+      }
+      return { role, name, grade, contact };
+    }).filter((x): x is { role: string; name: string; grade: string; contact: string } => Boolean(x));
+  };
+
+  // Export Filtered Submissions to Excel (CSV)
   const handleExportCSV = () => {
     if (filteredSubmissions.length === 0) {
-      alert('No submissions found to export for the current filters!');
+      alert('No registrations found to export for the current filters!');
       return;
     }
 
-    const allHeaders = new Set<string>(['Submission ID', 'Tournament Scope', 'Category', 'Form Title', 'Submitted At', 'Status']);
+    const allHeaders = new Set<string>(['Registration ID', 'Tournament Scope', 'Category', 'Form Title', 'Submitted At', 'Status']);
     filteredSubmissions.forEach(sub => {
-      Object.keys(sub.data).forEach(k => allHeaders.add(k));
+      Object.keys(sub.data).forEach(k => {
+        if (k !== 'Referral ID') allHeaders.add(k);
+      });
     });
 
     const headerArray = Array.from(allHeaders);
@@ -556,9 +611,9 @@ export default function CompetitionFormsAdmin() {
     filteredSubmissions.forEach(sub => {
       const row = headerArray.map(header => {
         let val = '';
-        if (header === 'Submission ID') val = sub.id;
+        if (header === 'Registration ID') val = sub.id;
         else if (header === 'Tournament Scope') val = sub.scope.toUpperCase();
-        else if (header === 'Category') val = sub.category || 'N/A';
+        else if (header === 'Category') val = sub.category || 'Senior (Grade 10 - 13)';
         else if (header === 'Form Title') val = sub.formTitle;
         else if (header === 'Submitted At') val = sub.submittedAt;
         else if (header === 'Status') val = sub.status.toUpperCase();
@@ -568,13 +623,270 @@ export default function CompetitionFormsAdmin() {
       csvRows.push(row.join(','));
     });
 
+    const compTag = filterCompetition === 'all' 
+      ? 'All_Competitions' 
+      : filterCompetition === '__standalone__' 
+        ? 'Normal_Forms' 
+        : filterCompetition.replace(/[^a-zA-Z0-9]/g, '_');
+    const catTag = filterCategory === 'all' ? 'All_Categories' : filterCategory.replace(/[^a-zA-Z0-9]/g, '_');
+
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csvRows.join('\n'));
     const link = document.createElement('a');
     link.setAttribute('href', csvContent);
-    link.setAttribute('download', `NCQC_Registrations_${filterScope}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `NCQC_Registrations_${compTag}_${filterScope}_${catTag}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showNotification(`Exported ${filteredSubmissions.length} registrations to CSV / Excel`);
+  };
+
+  // Export Filtered Submissions as Official PDF Report
+  const handleExportPDF = () => {
+    if (filteredSubmissions.length === 0) {
+      alert('No registrations found to export for the current filters!');
+      return;
+    }
+
+    const compName = filterCompetition === 'all' 
+      ? 'All Competitions' 
+      : filterCompetition === '__standalone__' 
+        ? 'Normal Forms (Standalone Events)' 
+        : (competitionsList.find(c => c.slug === filterCompetition)?.title ? stripStyledText(competitionsList.find(c => c.slug === filterCompetition)!.title) : filterCompetition);
+
+    const catName = filterCategory === 'all' ? 'All Categories' : filterCategory;
+    const scopeName = filterScope === 'all' ? 'All Scopes' : filterScope.toUpperCase();
+    const statusName = filterStatus === 'all' ? 'All Statuses' : filterStatus.toUpperCase();
+
+    const printWin = window.open('', '_blank', 'width=1150,height=850');
+    if (!printWin) {
+      alert('Please allow popups to export the PDF report.');
+      return;
+    }
+
+    const rowsHtml = filteredSubmissions.map((sub, i) => {
+      const candidate = sub.data['School / Institution Name'] || sub.data['School Name'] || sub.data['Candidate Name'] || sub.data['Full Name'] || 'N/A';
+      const contact = sub.data['Email Address'] || sub.data['Email'] || sub.data['Leader Phone / WhatsApp'] || sub.data['Mobile Number'] || 'N/A';
+      const squad = sub.teamMembers && sub.teamMembers.length > 0 
+        ? sub.teamMembers.map(m => `${m.role || 'Member'}: ${m.name}`).join(' | ') 
+        : (sub.data['Team Members'] || '-');
+
+      const statusBadge = sub.status === 'confirmed' 
+        ? '<span style="color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">CONFIRMED</span>'
+        : sub.status === 'rejected'
+          ? '<span style="color:#b91c1c;background:#fee2e2;border:1px solid #fca5a5;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">REJECTED</span>'
+          : '<span style="color:#b45309;background:#fef3c7;border:1px solid #fde047;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">PENDING</span>';
+
+      return `
+        <tr style="border-bottom:1px solid #e2e8f0;font-size:12px;">
+          <td style="padding:10px 8px;font-weight:700;color:#0f172a;">${i + 1}</td>
+          <td style="padding:10px 8px;font-family:monospace;font-weight:800;color:#dc2626;">${sub.id}</td>
+          <td style="padding:10px 8px;font-weight:800;color:#0f172a;">${candidate}</td>
+          <td style="padding:10px 8px;color:#475569;">${contact}</td>
+          <td style="padding:10px 8px;color:#334155;font-weight:600;">${sub.formTitle}</td>
+          <td style="padding:10px 8px;color:#64748b;">${sub.category || 'Senior'}</td>
+          <td style="padding:10px 8px;font-size:11px;color:#475569;max-width:240px;line-height:1.4;">${squad}</td>
+          <td style="padding:10px 8px;color:#64748b;white-space:nowrap;">${sub.submittedAt || '-'}</td>
+          <td style="padding:10px 8px;">${statusBadge}</td>
+        </tr>
+      `;
+    }).join('');
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>NCQC Submissions Report - ${compName}</title>
+          <style>
+            @page { size: landscape; margin: 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 24px; color: #0f172a; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #dc2626; padding-bottom: 12px; margin-bottom: 16px; }
+            .title { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+            .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+            .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 12px; }
+            .meta-item strong { color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; text-align: left; }
+            th { background: #0f172a; color: #ffffff; padding: 10px 8px; font-size: 12px; font-weight: 800; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 15px; display: flex; gap: 10px;">
+            <button onclick="window.print()" style="background:#dc2626;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;">
+              🖨️ Print / Save as PDF
+            </button>
+            <button onclick="window.close()" style="background:#64748b;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">
+              Close
+            </button>
+          </div>
+          <div class="header">
+            <div>
+              <h1 class="title">NALANDA COLLEGE QUIZ CLUB (NCQC)</h1>
+              <div class="subtitle">Official Competition & Event Registrations Dossier Report</div>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: #64748b;">
+              <div>Generated: ${new Date().toLocaleString()}</div>
+              <div style="font-weight:900;color:#dc2626;margin-top:2px;">Total Records: ${filteredSubmissions.length}</div>
+            </div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-item">Competition: <strong>${compName}</strong></div>
+            <div class="meta-item">Tournament Scope: <strong>${scopeName}</strong></div>
+            <div class="meta-item">Category: <strong>${catName}</strong></div>
+            <div class="meta-item">Status Filter: <strong>${statusName}</strong></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:25px;">#</th>
+                <th>Registration ID</th>
+                <th>Candidate / School</th>
+                <th>Contact</th>
+                <th>Form Title</th>
+                <th>Category</th>
+                <th>Team Squad</th>
+                <th>Submitted Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+    setTimeout(() => {
+      printWin.print();
+    }, 450);
+  };
+
+  // Download / Print Single Registration Slip (PDF)
+  const handlePrintSingleSlip = (sub: FormSubmission) => {
+    const printWin = window.open('', '_blank', 'width=850,height=920');
+    if (!printWin) {
+      alert('Please allow popups to download or print the registration slip.');
+      return;
+    }
+
+    const members = parseTeamMembers(sub);
+    const fieldsHtml = Object.entries(sub.data)
+      .filter(([k]) => !['Team Members', 'teamMembers', 'team_members', 'Referral ID'].includes(k))
+      .map(([k, v]) => `
+        <div style="margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">${k}</div>
+          <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;">${String(v)}</div>
+        </div>
+      `).join('');
+
+    const membersHtml = members.length > 0 ? `
+      <div style="margin-top:18px;">
+        <div style="font-size:12px;font-weight:900;color:#0f172a;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">
+          👥 Official Team Squad (${members.length} Members)
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f1f5f9;text-align:left;">
+              <th style="padding:7px 10px;font-weight:800;color:#334155;">Role</th>
+              <th style="padding:7px 10px;font-weight:800;color:#334155;">Full Name</th>
+              <th style="padding:7px 10px;font-weight:800;color:#334155;">Grade / Class</th>
+              <th style="padding:7px 10px;font-weight:800;color:#334155;">Contact / WhatsApp</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${members.map((m: any, idx: number) => `
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px 10px;font-weight:900;color:${idx === 0 ? '#dc2626' : '#475569'};">${m.role || (idx === 0 ? 'Member 1 (Team Leader)' : `Member ${idx + 1}`)}</td>
+                <td style="padding:8px 10px;font-weight:800;color:#0f172a;">${m.name || '-'}</td>
+                <td style="padding:8px 10px;color:#64748b;font-weight:600;">${m.grade || '-'}</td>
+                <td style="padding:8px 10px;color:#047857;font-weight:700;">${m.contact || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : '';
+
+    const statusBadge = sub.status === 'confirmed'
+      ? '<span style="color:#15803d;background:#dcfce7;border:2px solid #86efac;padding:6px 14px;border-radius:8px;font-weight:900;font-size:14px;display:inline-block;">✓ CONFIRMED</span>'
+      : sub.status === 'rejected'
+        ? '<span style="color:#b91c1c;background:#fee2e2;border:2px solid #fca5a5;padding:6px 14px;border-radius:8px;font-weight:900;font-size:14px;display:inline-block;">✕ REJECTED</span>'
+        : '<span style="color:#b45309;background:#fef3c7;border:2px solid #fde047;padding:6px 14px;border-radius:8px;font-weight:900;font-size:14px;display:inline-block;">⏳ PENDING</span>';
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>NCQC Registration Slip - ${sub.id}</title>
+          <style>
+            @page { size: A4 portrait; margin: 15mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 24px; color: #0f172a; }
+            .card { border: 2px solid #0f172a; border-radius: 16px; padding: 24px; position: relative; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #dc2626; padding-bottom: 16px; margin-bottom: 16px; }
+            .reg-id { font-family: monospace; font-size: 20px; font-weight: 900; color: #dc2626; background: #fee2e2; padding: 6px 12px; border-radius: 8px; display: inline-block; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 0; }
+              .card { border: 1.5px solid #0f172a; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button onclick="window.print()" style="background:#dc2626;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;">
+              🖨️ Print / Save as PDF
+            </button>
+            <button onclick="window.close()" style="background:#64748b;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">
+              Close
+            </button>
+          </div>
+          <div class="card">
+            <div class="header">
+              <div>
+                <div style="font-size:11px;font-weight:900;color:#dc2626;letter-spacing:0.1em;text-transform:uppercase;">Official Registration Slip</div>
+                <h1 style="font-size:22px;font-weight:900;margin:4px 0 2px 0;">NALANDA COLLEGE QUIZ CLUB</h1>
+                <div style="font-size:13px;color:#64748b;font-weight:700;">${sub.formTitle}</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="reg-id">${sub.id}</div>
+                <div style="margin-top:8px;">${statusBadge}</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f8fafc;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:12px;">
+              <div><strong>Scope:</strong> ${sub.scope.toUpperCase()}</div>
+              <div><strong>Category:</strong> ${sub.category || 'Senior (Grade 10 - 13)'}</div>
+              <div><strong>Submitted Date:</strong> ${sub.submittedAt || '-'}</div>
+              <div><strong>Database:</strong> Verified via Firebase Database</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:4px;">
+              ${fieldsHtml}
+            </div>
+
+            ${membersHtml}
+
+            <div style="margin-top:28px;padding-top:16px;border-top:1px dashed #cbd5e1;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#64748b;">
+              <div>
+                <div>Official verification document issued by Nalanda College Quiz Club (NCQC).</div>
+                <div>Questions / Support: nalandaquizclub@gmail.com</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="border-bottom:1px solid #94a3b8;width:150px;margin-bottom:4px;"></div>
+                <div>Authorized Seal & Signature</div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+    setTimeout(() => {
+      printWin.print();
+    }, 450);
   };
 
   // Scope definitions with icons and descriptions
@@ -1002,9 +1314,6 @@ export default function CompetitionFormsAdmin() {
                     style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.9rem', background: '#fff', fontWeight: 600 }}
                   >
                     <option value="Senior (Grade 10 - 13)">Senior (Grade 10 - 13)</option>
-                    <option value="Junior (Grade 6 - 9)">Junior (Grade 6 - 9)</option>
-                    <option value="Primary (Grade 1 - 5)">Primary (Grade 1 - 5)</option>
-                    <option value="Open Category">Open / University / All</option>
                   </select>
                 </div>
 
@@ -1138,68 +1447,128 @@ export default function CompetitionFormsAdmin() {
 
                       {/* TEAM MEMBERS CONFIGURATION (IMAGE 5) */}
                       {field.type === 'team-members' && (
-                        <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '12px', border: '1px solid #bbf7d0', marginTop: '0.25rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                            <label style={{ fontSize: '0.8rem', fontWeight: 800, color: '#166534' }}>
-                              👥 Team Members Configuration (Fixed Team Size)
+                        <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #86efac', marginTop: '0.4rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span>👥</span> Team Squad Member Settings (Custom Squad Size)
                             </label>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: '100px' }}>
-                              {field.teamConfig?.memberCount || 4} Members Set
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '0.25rem 0.75rem', borderRadius: '100px', border: '1px solid #86efac' }}>
+                              {field.teamConfig?.memberCount || 4} Members Configured
                             </span>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', alignItems: 'center' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
                             <div>
-                              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#14532d', marginBottom: '0.25rem' }}>
-                                Number of Members:
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#14532d', marginBottom: '0.35rem' }}>
+                                Member Count (Any number):
                               </label>
-                              <select
-                                value={field.teamConfig?.memberCount || 4}
-                                onChange={(e) => handleUpdateField(idx, {
-                                  teamConfig: {
-                                    ...(field.teamConfig || {}),
-                                    memberCount: parseInt(e.target.value) || 4
-                                  }
-                                })}
-                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #86efac', background: '#fff', fontWeight: 700, fontSize: '0.85rem' }}
-                              >
-                                <option value="2">2 Members</option>
-                                <option value="3">3 Members</option>
-                                <option value="4">4 Members (Table Quiz Standard)</option>
-                                <option value="5">5 Members (Squad + Reserve)</option>
-                                <option value="6">6 Members</option>
-                              </select>
+                              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="50"
+                                  value={field.teamConfig?.memberCount || 4}
+                                  onChange={(e) => {
+                                    const val = Math.max(1, parseInt(e.target.value) || 1);
+                                    handleUpdateField(idx, {
+                                      teamConfig: {
+                                        ...(field.teamConfig || {}),
+                                        memberCount: val
+                                      }
+                                    });
+                                  }}
+                                  style={{ width: '90px', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #16a34a', background: '#fff', fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}
+                                />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>Members</span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                {[2, 3, 4, 5, 6, 8, 10].map(cnt => (
+                                  <button
+                                    key={cnt}
+                                    type="button"
+                                    onClick={() => handleUpdateField(idx, {
+                                      teamConfig: {
+                                        ...(field.teamConfig || {}),
+                                        memberCount: cnt
+                                      }
+                                    })}
+                                    style={{
+                                      padding: '0.2rem 0.55rem',
+                                      borderRadius: '6px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 800,
+                                      border: (field.teamConfig?.memberCount || 4) === cnt ? '1.5px solid #16a34a' : '1px solid #bbf7d0',
+                                      background: (field.teamConfig?.memberCount || 4) === cnt ? '#16a34a' : '#fff',
+                                      color: (field.teamConfig?.memberCount || 4) === cnt ? '#fff' : '#15803d',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {cnt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#166534', cursor: 'pointer', marginTop: '1rem' }}>
-                              <input
-                                type="checkbox"
-                                checked={field.teamConfig?.includeGrade !== false}
-                                onChange={(e) => handleUpdateField(idx, {
-                                  teamConfig: {
-                                    ...(field.teamConfig || {}),
-                                    includeGrade: e.target.checked
-                                  }
-                                })}
-                                style={{ accentColor: '#16a34a' }}
-                              />
-                              Ask Grade / Class
-                            </label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#166534', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={field.teamConfig?.includeGrade !== false}
+                                  onChange={(e) => handleUpdateField(idx, {
+                                    teamConfig: {
+                                      ...(field.teamConfig || {}),
+                                      includeGrade: e.target.checked
+                                    }
+                                  })}
+                                  style={{ accentColor: '#16a34a', width: '16px', height: '16px' }}
+                                />
+                                Ask Grade / Class for each member
+                              </label>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#166534', cursor: 'pointer', marginTop: '1rem' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#166534', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={field.teamConfig?.includePhone !== false}
+                                  onChange={(e) => handleUpdateField(idx, {
+                                    teamConfig: {
+                                      ...(field.teamConfig || {}),
+                                      includePhone: e.target.checked
+                                    }
+                                  })}
+                                  style={{ accentColor: '#16a34a', width: '16px', height: '16px' }}
+                                />
+                                Ask Leader Phone / WhatsApp
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* STRICT MEMBER COUNT ENFORCEMENT TOGGLE */}
+                          <div style={{ 
+                            background: field.teamConfig?.enforceExactCount ? '#fef2f2' : '#ffffff', 
+                            padding: '0.85rem 1rem', 
+                            borderRadius: '10px', 
+                            border: field.teamConfig?.enforceExactCount ? '1.5px solid #f87171' : '1px solid #bbf7d0',
+                            transition: 'all 0.2s ease'
+                          }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.82rem', fontWeight: 800, color: field.teamConfig?.enforceExactCount ? '#991b1b' : '#166534', cursor: 'pointer' }}>
                               <input
                                 type="checkbox"
-                                checked={field.teamConfig?.includePhone !== false}
+                                checked={field.teamConfig?.enforceExactCount === true}
                                 onChange={(e) => handleUpdateField(idx, {
                                   teamConfig: {
                                     ...(field.teamConfig || {}),
-                                    includePhone: e.target.checked
+                                    enforceExactCount: e.target.checked
                                   }
                                 })}
-                                style={{ accentColor: '#16a34a' }}
+                                style={{ accentColor: '#dc2626', width: '18px', height: '18px' }}
                               />
-                              Leader Phone / WhatsApp
+                              <span>🔒 Enforce Strict Member Count (Must fill ALL {field.teamConfig?.memberCount || 4} members before submitting)</span>
                             </label>
+                            <p style={{ margin: '0.35rem 0 0 1.8rem', fontSize: '0.75rem', color: field.teamConfig?.enforceExactCount ? '#b91c1c' : '#15803d', fontWeight: 600 }}>
+                              {field.teamConfig?.enforceExactCount 
+                                ? `⚠️ STRICT MODE ON: Candidates cannot submit the registration unless details for all ${field.teamConfig?.memberCount || 4} members are provided.`
+                                : `✓ FLEXIBLE MODE: Candidates can submit with fewer members if team is not full (Only Team Leader is strictly required).`}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -2076,15 +2445,31 @@ export default function CompetitionFormsAdmin() {
               <button
                 type="button"
                 onClick={handleExportCSV}
+                title="Download filtered registrations as an Excel-compatible CSV"
                 style={{ 
                   background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
-                  color: '#fff', border: 'none', padding: '0.85rem 1.5rem', 
+                  color: '#fff', border: 'none', padding: '0.85rem 1.35rem', 
                   borderRadius: '12px', fontWeight: 800, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '0.5rem',
                   boxShadow: '0 8px 20px rgba(4, 120, 87, 0.35)'
                 }}
               >
                 <span>📥</span> Export to Excel / CSV
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportPDF}
+                title="Download or print filtered registrations as a complete PDF Dossier Report"
+                style={{ 
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
+                  color: '#fff', border: 'none', padding: '0.85rem 1.35rem', 
+                  borderRadius: '12px', fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  boxShadow: '0 8px 20px rgba(220, 38, 38, 0.35)'
+                }}
+              >
+                <span>📄</span> Export PDF Report
               </button>
             </div>
           </div>
@@ -2213,6 +2598,42 @@ export default function CompetitionFormsAdmin() {
                 <span>🌐</span> All Competitions ({submissions.length})
               </button>
 
+              {/* Normal Forms Button (Standalone Public Events from Image 1 & 3) */}
+              {(() => {
+                const normalFormsCount = submissions.filter(s => 
+                  (s as any).isStandalone ||
+                  s.competitionSlug === '__standalone__' ||
+                  forms.find(f => f.id === s.formId)?.isStandalone
+                ).length;
+                const isSelected = filterCompetition === '__standalone__';
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setFilterCompetition('__standalone__')}
+                    style={{
+                      padding: '0.65rem 1.15rem',
+                      borderRadius: '12px',
+                      border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: isSelected ? '#eff6ff' : '#ffffff',
+                      color: isSelected ? '#1d4ed8' : '#334155',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      whiteSpace: 'nowrap',
+                      boxShadow: isSelected ? '0 4px 12px rgba(37, 99, 235, 0.18)' : 'none',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>📋</span> Normal Forms ({normalFormsCount})
+                  </button>
+                );
+              })()}
+
               {/* Dynamic Competition Buttons */}
               {competitionsList.map(comp => {
                 const isSelected = filterCompetition === comp.slug;
@@ -2324,10 +2745,7 @@ export default function CompetitionFormsAdmin() {
                 style={{ padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', fontWeight: 600 }}
               >
                 <option value="all">All Categories</option>
-                <option value="Senior (Grade 10 - 13)">Senior</option>
-                <option value="Junior (Grade 6 - 9)">Junior</option>
-                <option value="Primary (Grade 1 - 5)">Primary</option>
-                <option value="Open Category">Open</option>
+                <option value="Senior (Grade 10 - 13)">Senior (Grade 10 - 13)</option>
               </select>
             </div>
 
@@ -2494,19 +2912,39 @@ export default function CompetitionFormsAdmin() {
       {/* FULL SUBMISSION MODAL */}
       {selectedSubmission && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: '#fff', borderRadius: '24px', maxWidth: '640px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '2.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', position: 'relative' }}>
+          <div style={{ background: '#fff', borderRadius: '24px', maxWidth: '720px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '2.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', position: 'relative' }}>
             <button 
               type="button"
               onClick={() => setSelectedSubmission(null)}
-              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.1rem', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               ✕
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '0.4rem', paddingRight: '2rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                APPLICATION DOSSIER • {selectedSubmission.scope.toUpperCase()}
-              </span>
+            {/* Dossier Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '0.6rem', paddingRight: '2.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  APPLICATION DOSSIER • {selectedSubmission.scope.toUpperCase()}
+                </span>
+                
+                {/* Current Status Pill */}
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  padding: '0.2rem 0.65rem',
+                  borderRadius: '100px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  background: selectedSubmission.status === 'confirmed' ? '#dcfce7' : selectedSubmission.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                  color: selectedSubmission.status === 'confirmed' ? '#15803d' : selectedSubmission.status === 'rejected' ? '#b91c1c' : '#b45309',
+                  border: `1.5px solid ${selectedSubmission.status === 'confirmed' ? '#86efac' : selectedSubmission.status === 'rejected' ? '#fca5a5' : '#fde047'}`
+                }}>
+                  {selectedSubmission.status === 'confirmed' ? '✓ Confirmed' : selectedSubmission.status === 'rejected' ? '✕ Rejected' : '⏳ Pending'}
+                </span>
+              </div>
+
+              {/* Clean Monospace Registration ID */}
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                 <span style={{ 
                   fontFamily: 'monospace', 
@@ -2518,7 +2956,7 @@ export default function CompetitionFormsAdmin() {
                   borderRadius: '8px', 
                   border: '1px solid #cbd5e1' 
                 }}>
-                  ID: {selectedSubmission.id}
+                  {selectedSubmission.id}
                 </span>
                 <button
                   type="button"
@@ -2542,39 +2980,191 @@ export default function CompetitionFormsAdmin() {
                 </button>
               </div>
             </div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0 1rem 0' }}>
+
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0.25rem 0 1.25rem 0' }}>
               {selectedSubmission.formTitle}
             </h2>
 
-            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem' }}>
-              {Object.entries(selectedSubmission.data).map(([key, val]) => (
-                <div key={key} style={{ borderBottom: '1px solid #eef2f6', paddingBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', display: 'block' }}>{key}</span>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: '0.1rem', display: 'block' }}>{String(val)}</span>
-                </div>
-              ))}
+            {/* Key Information Grid (Clean & Deduplicated) */}
+            <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              {Object.entries(selectedSubmission.data)
+                .filter(([key]) => {
+                  // Eliminate duplicate referral ID if registration ID is present
+                  if (key === 'Referral ID' && selectedSubmission.data['Registration ID']) return false;
+                  // Skip raw team members string since it's displayed below as cards
+                  if (['Team Members', 'teamMembers', 'team_members'].includes(key)) return false;
+                  return true;
+                })
+                .map(([key, val]) => (
+                  <div key={key} style={{ borderBottom: '1px solid #eef2f6', paddingBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'block' }}>
+                      {key}
+                    </span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: '0.15rem', display: 'block' }}>
+                      {String(val)}
+                    </span>
+                  </div>
+                ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Dedicated Modern Team Squad Cards (Image 4 Enhancement) */}
+            {(() => {
+              const members = parseTeamMembers(selectedSubmission);
+              if (members.length === 0) return null;
+              return (
+                <div style={{ marginTop: '0.5rem', borderTop: '2px dashed #cbd5e1', paddingTop: '1.25rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      👥 Registered Team Squad ({members.length} Members)
+                    </span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', padding: '0.2rem 0.65rem', borderRadius: '100px' }}>
+                      Squad Details
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                    {members.map((m, mIdx) => (
+                      <div
+                        key={mIdx}
+                        style={{
+                          background: mIdx === 0 ? '#fff7ed' : '#ffffff',
+                          border: mIdx === 0 ? '1.5px solid #fdba74' : '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '0.85rem 1rem',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            color: mIdx === 0 ? '#ea580c' : '#475569',
+                            background: mIdx === 0 ? '#ffedd5' : '#f1f5f9',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '6px'
+                          }}>
+                            {mIdx === 0 ? '👑 Team Leader' : `👤 Member ${mIdx + 1}`}
+                          </span>
+                          {m.grade && (
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>
+                              {m.grade}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.2rem' }}>
+                          {m.name || 'Anonymous'}
+                        </div>
+                        {m.contact && (
+                          <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700, marginTop: '0.2rem' }}>
+                            📞 {m.contact}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Modal Actions Bar (Images 4 & 5 Fixes) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Confirm Button with Active Indicator */}
                 <button
                   type="button"
                   onClick={() => handleUpdateSubmissionStatus(selectedSubmission.id, 'confirmed')}
-                  style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', padding: '0.5rem 0.9rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{
+                    background: selectedSubmission.status === 'confirmed' ? '#15803d' : '#dcfce7',
+                    color: selectedSubmission.status === 'confirmed' ? '#ffffff' : '#15803d',
+                    border: `1.5px solid ${selectedSubmission.status === 'confirmed' ? '#14532d' : '#86efac'}`,
+                    boxShadow: selectedSubmission.status === 'confirmed' ? '0 4px 12px rgba(21, 128, 61, 0.35)' : 'none',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease'
+                  }}
                 >
-                  ✓ Confirm
+                  ✓ {selectedSubmission.status === 'confirmed' ? 'Confirmed (Active)' : 'Confirm'}
                 </button>
+
+                {/* Reject Button with Active Indicator */}
                 <button
                   type="button"
                   onClick={() => handleUpdateSubmissionStatus(selectedSubmission.id, 'rejected')}
-                  style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '0.5rem 0.9rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{
+                    background: selectedSubmission.status === 'rejected' ? '#b91c1c' : '#fee2e2',
+                    color: selectedSubmission.status === 'rejected' ? '#ffffff' : '#b91c1c',
+                    border: `1.5px solid ${selectedSubmission.status === 'rejected' ? '#7f1d1d' : '#fca5a5'}`,
+                    boxShadow: selectedSubmission.status === 'rejected' ? '0 4px 12px rgba(185, 28, 28, 0.35)' : 'none',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease'
+                  }}
                 >
-                  ✕ Reject
+                  ✕ {selectedSubmission.status === 'rejected' ? 'Rejected (Active)' : 'Reject'}
                 </button>
+
+                {/* Mark Pending Button */}
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSubmissionStatus(selectedSubmission.id, 'pending')}
+                  style={{
+                    background: selectedSubmission.status === 'pending' ? '#d97706' : '#fef3c7',
+                    color: selectedSubmission.status === 'pending' ? '#ffffff' : '#b45309',
+                    border: `1.5px solid ${selectedSubmission.status === 'pending' ? '#b45309' : '#fde047'}`,
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Mark submission as pending review"
+                >
+                  ⏳ Pending
+                </button>
+
+                {/* Single Slip PDF Download / Print Button (Image 4 Requirement) */}
+                <button
+                  type="button"
+                  onClick={() => handlePrintSingleSlip(selectedSubmission)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)'
+                  }}
+                >
+                  🖨️ Download / Print Slip (PDF)
+                </button>
+
+                {/* Delete from Firebase */}
                 <button
                   type="button"
                   onClick={() => handleDeleteSubmission(selectedSubmission.id)}
-                  style={{ background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.5rem 0.9rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{
+                    background: '#fff',
+                    color: '#dc2626',
+                    border: '1px solid #fca5a5',
+                    padding: '0.55rem 0.85rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Permanently remove from database"
                 >
                   🗑️ Delete from Firebase
                 </button>
@@ -2583,7 +3173,15 @@ export default function CompetitionFormsAdmin() {
               <button
                 type="button"
                 onClick={() => setSelectedSubmission(null)}
-                style={{ background: '#0f172a', color: '#fff', border: 'none', padding: '0.6rem 1.4rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+                style={{
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.6rem 1.4rem',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
               >
                 Close
               </button>

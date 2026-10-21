@@ -29,6 +29,7 @@ export interface FormField {
     memberCount?: number;
     includePhone?: boolean;
     includeGrade?: boolean;
+    enforceExactCount?: boolean;
   };
 }
 
@@ -77,6 +78,7 @@ export interface FormSubmission {
   status: 'confirmed' | 'pending' | 'rejected';
   data: Record<string, any>;
   teamMembers?: Array<{ name: string; grade?: string; role?: string; contact?: string }>;
+  isStandalone?: boolean;
 }
 
 export const sampleForms: CompetitionForm[] = [];

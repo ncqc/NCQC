@@ -129,10 +129,10 @@ export default function StandalonePublicFormPage() {
         const leader = teamMembersList[0];
         if (!leader?.name?.trim()) {
           newErrors[field.label] = 'Team Leader name is required.';
-        } else {
+        } else if (field.teamConfig?.enforceExactCount) {
           const emptyIdx = teamMembersList.slice(0, targetCount).findIndex(m => !m.name.trim());
           if (emptyIdx !== -1) {
-            newErrors[field.label] = `All ${targetCount} team members are required. Please enter details for Member ${emptyIdx + 1}.`;
+            newErrors[field.label] = `All ${targetCount} team members are strictly required. Please enter details for Member ${emptyIdx + 1}.`;
           }
         }
       } else {
@@ -166,16 +166,18 @@ export default function StandalonePublicFormPage() {
       referralId: generatedRef,
       formId: form.id,
       formTitle: form.title,
+      competitionSlug: form.isStandalone ? '__standalone__' : (form.competitionSlug || '__standalone__'),
+      competitionTitle: form.competitionTitle || (form.isStandalone ? 'Normal Form / Public Event' : 'NCQC Event'),
+      isStandalone: form.isStandalone ?? true,
       scope: form.scope || 'invitational',
-      category: form.category || 'Open Category',
+      category: form.category || 'Senior (Grade 10 - 13)',
       submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       status: 'confirmed' as const,
       data: { 
         ...formValues,
-        'Referral ID': generatedRef,
         'Registration ID': generatedRef,
         ...(teamMembersList.some(m => m.name.trim()) ? {
-          'Team Members': teamMembersList.filter(m => m.name.trim()).map(m => `${m.role}: ${m.name} (${m.grade || 'N/A'})`).join('; ')
+          'Team Members': teamMembersList.filter(m => m.name.trim()).map(m => `${m.role}: ${m.name}${m.grade ? ` (${m.grade})` : ''}${m.contact ? ` [${m.contact}]` : ''}`).join('; ')
         } : {})
       },
       teamMembers: teamMembersList.filter(m => m.name.trim())
@@ -469,9 +471,9 @@ export default function StandalonePublicFormPage() {
                         </div>
                         <div
                           style={{
-                            background: '#ecfdf5',
-                            color: '#047857',
-                            border: '1px solid #a7f3d0',
+                            background: field.teamConfig?.enforceExactCount ? '#fef2f2' : '#ecfdf5',
+                            color: field.teamConfig?.enforceExactCount ? '#b91c1c' : '#047857',
+                            border: `1px solid ${field.teamConfig?.enforceExactCount ? '#fecaca' : '#a7f3d0'}`,
                             padding: '0.4rem 0.85rem',
                             borderRadius: '100px',
                             fontWeight: 800,
@@ -481,7 +483,10 @@ export default function StandalonePublicFormPage() {
                             gap: '0.35rem'
                           }}
                         >
-                          <span>👥</span> Fixed Squad: {field.teamConfig?.memberCount || 4} Members
+                          <span>{field.teamConfig?.enforceExactCount ? '🔒' : '👥'}</span>
+                          {field.teamConfig?.enforceExactCount 
+                            ? `Strict Squad: Exactly ${field.teamConfig?.memberCount || 4} Members Required` 
+                            : `Team Squad: Up to ${field.teamConfig?.memberCount || 4} Members`}
                         </div>
                       </div>
 
@@ -515,7 +520,11 @@ export default function StandalonePublicFormPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                               <div>
                                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.25rem' }}>
-                                  Full Name *
+                                  {mIdx === 0 
+                                    ? 'Full Name (Team Leader) *' 
+                                    : field.teamConfig?.enforceExactCount 
+                                      ? `Full Name (Member ${mIdx + 1}) *` 
+                                      : `Full Name (Member ${mIdx + 1} - Optional)`}
                                 </label>
                                 <input
                                   type="text"
