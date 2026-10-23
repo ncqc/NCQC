@@ -39,9 +39,9 @@ export async function GET(
       filePath = segments.slice(1).map(decodeURIComponent).join('/');
     }
 
-    // Sanitize to prevent path traversal
-    if (filePath.includes('..')) {
-      return new NextResponse('Invalid path', { status: 400 });
+    // Sanitize to prevent path traversal and forbid directory browsing
+    if (!filePath || filePath.trim() === '' || filePath.includes('..') || !filePath.includes('.')) {
+      return new NextResponse('Direct media directory browsing is forbidden', { status: 403 });
     }
 
     // Fetch image from Supabase Storage on the server
@@ -59,6 +59,7 @@ export async function GET(
               'Content-Type': contentType,
               'Cache-Control': 'public, max-age=31536000, immutable',
               'X-Content-Type-Options': 'nosniff',
+              'X-Robots-Tag': 'noindex, nofollow, noarchive',
             },
           });
         }
@@ -76,6 +77,7 @@ export async function GET(
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
         'X-Content-Type-Options': 'nosniff',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
       },
     });
   } catch (err: any) {
