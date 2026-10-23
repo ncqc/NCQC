@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { 
-  CompetitionForm, 
-  FormField, 
-  FormFieldType, 
+import {
+  CompetitionForm,
+  FormField,
+  FormFieldType,
   FormSubmission,
   CompetitionScope,
   PostSubmitConfig
@@ -50,7 +50,7 @@ export const formatSubmissionDateTime = (raw?: string) => {
       });
       return { date, time };
     }
-  } catch {}
+  } catch { }
   return { date: raw, time: '' };
 };
 
@@ -61,7 +61,7 @@ export default function CompetitionFormsAdmin() {
   const [isFirebaseSyncing, setIsFirebaseSyncing] = useState<boolean>(true);
   const [firebaseRulesWarning, setFirebaseRulesWarning] = useState<boolean>(false);
   const [isSyncingSubmissions, setIsSyncingSubmissions] = useState<boolean>(false);
-  
+
   // Competitions list for linking & filtering
   const [competitionsList, setCompetitionsList] = useState<Competition[]>(competitionsData);
   const [selectedCompetitionSlug, setSelectedCompetitionSlug] = useState<string>('');
@@ -72,7 +72,7 @@ export default function CompetitionFormsAdmin() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Builder form state
   const [editingFormId, setEditingFormId] = useState<string | null>(null);
   const [formTitle, setFormTitle] = useState('PIXELEON \'26 | Submissions');
@@ -94,7 +94,7 @@ export default function CompetitionFormsAdmin() {
   const [formHeaderImage, setFormHeaderImage] = useState<string>('');
   const [isCompressingBanner, setIsCompressingBanner] = useState<boolean>(false);
   const [formFields, setFormFields] = useState<FormField[]>([]);
-  
+
   // Builder field options temporary typing buffer (solves comma bug completely)
   const [optionsInputBuffer, setOptionsInputBuffer] = useState<Record<string, string>>({});
 
@@ -113,7 +113,7 @@ export default function CompetitionFormsAdmin() {
           setCompetitionsList(d.data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 2. Fetch Forms directly from Firebase Cloud Database
     setIsFirebaseSyncing(true);
@@ -133,7 +133,7 @@ export default function CompetitionFormsAdmin() {
     });
 
     // 4. Load form links mapping
-    getFirebaseFormLinks().catch(() => {});
+    getFirebaseFormLinks().catch(() => { });
 
     // 5. Check Firebase Security Rules status
     checkFirebaseHealth().then(health => {
@@ -251,7 +251,7 @@ export default function CompetitionFormsAdmin() {
     setSubmitButtonGradientEnd('#991b1b');
     setSubmitButtonTextColor('#ffffff');
     setFormHeaderImage('');
-    
+
     // Default crisp fields (matching Image 2)
     const initialFields: FormField[] = [
       { id: 'f_email_' + Date.now(), label: 'Email Address', type: 'email', placeholder: 'you@example.com', required: true, helpText: 'This form is limited to 1 response per email.' },
@@ -335,7 +335,7 @@ export default function CompetitionFormsAdmin() {
     // 1. Optimistic instant local update
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s));
     setSelectedSubmission(prev => prev && prev.id === id ? { ...prev, status: newStatus } : prev);
-    
+
     // 2. Persist directly to Firebase Cloud Firestore and Realtime Database
     try {
       await updateFirebaseSubmissionStatus(id, newStatus);
@@ -481,20 +481,20 @@ export default function CompetitionFormsAdmin() {
       // Save directly to Firebase Cloud Database
       await saveFirebaseForm(updatedForm);
       if (compSlugToSave) {
-        await saveFirebaseFormLink(compSlugToSave, savedFormId).catch(() => {});
+        await saveFirebaseFormLink(compSlugToSave, savedFormId).catch(() => { });
       }
 
       const latestForms = await getFirebaseForms();
       setForms(latestForms);
       try {
         localStorage.setItem('ncqc_competition_forms', JSON.stringify(latestForms));
-      } catch {}
+      } catch { }
       setIsFirebaseSyncing(false);
 
       showNotification(isStandaloneForm
         ? `Standalone form updated in Firebase! Accessible at /forms/${updatedForm.slug}`
-        : compSlugToSave 
-          ? `Form updated and linked to "${linkedCompTitle}" in Firebase Database!` 
+        : compSlugToSave
+          ? `Form updated and linked to "${linkedCompTitle}" in Firebase Database!`
           : 'Form updated in Firebase Database!');
     } else {
       const formSlug = formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `form-${Date.now()}`;
@@ -525,20 +525,20 @@ export default function CompetitionFormsAdmin() {
       // Save directly to Firebase Cloud Database
       await saveFirebaseForm(newForm);
       if (compSlugToSave) {
-        await saveFirebaseFormLink(compSlugToSave, savedFormId).catch(() => {});
+        await saveFirebaseFormLink(compSlugToSave, savedFormId).catch(() => { });
       }
 
       const latestForms = await getFirebaseForms();
       setForms(latestForms);
       try {
         localStorage.setItem('ncqc_competition_forms', JSON.stringify(latestForms));
-      } catch {}
+      } catch { }
       setIsFirebaseSyncing(false);
 
       showNotification(isStandaloneForm
         ? `New standalone form published to Firebase! Public link: /forms/${formSlug}`
-        : compSlugToSave 
-          ? `New custom form created and saved to Firebase for "${linkedCompTitle}"!` 
+        : compSlugToSave
+          ? `New custom form created and saved to Firebase for "${linkedCompTitle}"!`
           : 'New custom form saved to Firebase Database!');
     }
 
@@ -568,7 +568,7 @@ export default function CompetitionFormsAdmin() {
       category: formCategory,
       submittedAt: getRealDateTimeString(),
       status: 'confirmed',
-      data: { 
+      data: {
         ...previewAnswers,
         'Referral ID': testRef,
         'Registration ID': testRef,
@@ -587,34 +587,34 @@ export default function CompetitionFormsAdmin() {
   const filteredSubmissions = submissions.filter(sub => {
     const rawQ = searchQuery.trim();
     const q = rawQ.toLowerCase();
-    
+
     // Normalize IDs for ultra-resilient matching (e.g. "REG-2026-492193", "492193", "reg 2026")
     const subId = (sub.id || '').toLowerCase();
     const subRef = ((sub as any).referralId || '').toLowerCase();
     const qClean = q.replace(/[^a-z0-9]/gi, '');
     const idClean = subId.replace(/[^a-z0-9]/gi, '');
     const refClean = subRef.replace(/[^a-z0-9]/gi, '');
-    
+
     // Exact or partial ID / referral match
     const isIdMatch = q !== '' && (
-      subId.includes(q) || 
-      subRef.includes(q) || 
+      subId.includes(q) ||
+      subRef.includes(q) ||
       (qClean.length >= 3 && (idClean.includes(qClean) || refClean.includes(qClean)))
     );
 
     // Extract school name and candidate name
     const schoolName = (
-      sub.data?.['School Name'] || 
-      sub.data?.['School'] || 
-      sub.data?.['School / Institution Name'] || 
+      sub.data?.['School Name'] ||
+      sub.data?.['School'] ||
+      sub.data?.['School / Institution Name'] ||
       ''
     ).toLowerCase();
 
     const candidateName = (
-      sub.data?.['Name'] || 
-      sub.data?.['Full Name'] || 
-      sub.data?.['Candidate Full Name'] || 
-      sub.data?.['Team Leader Full Name'] || 
+      sub.data?.['Name'] ||
+      sub.data?.['Full Name'] ||
+      sub.data?.['Candidate Full Name'] ||
+      sub.data?.['Team Leader Full Name'] ||
       ''
     ).toLowerCase();
 
@@ -657,7 +657,7 @@ export default function CompetitionFormsAdmin() {
     const matchesScope = filterScope === 'all' || sub.scope === filterScope;
     const matchesCat = filterCategory === 'all' || sub.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || sub.status === filterStatus;
-    
+
     // Competition Matching (Normal Standalone Forms & Specific Competitions)
     let matchesComp = false;
     if (filterCompetition === 'all') {
@@ -683,7 +683,7 @@ export default function CompetitionFormsAdmin() {
       );
     }
 
-    const matchesSearch = q === '' || 
+    const matchesSearch = q === '' ||
       subId.includes(q) ||
       subRef.includes(q) ||
       (sub.formTitle || '').toLowerCase().includes(q) ||
@@ -761,10 +761,10 @@ export default function CompetitionFormsAdmin() {
       csvRows.push(row.join(','));
     });
 
-    const compTag = filterCompetition === 'all' 
-      ? 'All_Competitions' 
-      : filterCompetition === '__standalone__' 
-        ? 'Normal_Forms' 
+    const compTag = filterCompetition === 'all'
+      ? 'All_Competitions'
+      : filterCompetition === '__standalone__'
+        ? 'Normal_Forms'
         : filterCompetition.replace(/[^a-zA-Z0-9]/g, '_');
     const catTag = filterCategory === 'all' ? 'All_Categories' : filterCategory.replace(/[^a-zA-Z0-9]/g, '_');
 
@@ -785,10 +785,10 @@ export default function CompetitionFormsAdmin() {
       return;
     }
 
-    const compName = filterCompetition === 'all' 
-      ? 'All Competitions' 
-      : filterCompetition === '__standalone__' 
-        ? 'Normal Forms (Standalone Events)' 
+    const compName = filterCompetition === 'all'
+      ? 'All Competitions'
+      : filterCompetition === '__standalone__'
+        ? 'Normal Forms (Standalone Events)'
         : (competitionsList.find(c => c.slug === filterCompetition)?.title ? stripStyledText(competitionsList.find(c => c.slug === filterCompetition)!.title) : filterCompetition);
 
     const catName = filterCategory === 'all' ? 'All Categories' : filterCategory;
@@ -804,11 +804,11 @@ export default function CompetitionFormsAdmin() {
     const rowsHtml = filteredSubmissions.map((sub, i) => {
       const candidate = sub.data['School / Institution Name'] || sub.data['School Name'] || sub.data['Candidate Name'] || sub.data['Full Name'] || 'N/A';
       const contact = sub.data['Email Address'] || sub.data['Email'] || sub.data['Leader Phone / WhatsApp'] || sub.data['Mobile Number'] || 'N/A';
-      const squad = sub.teamMembers && sub.teamMembers.length > 0 
-        ? sub.teamMembers.map(m => `${m.role || 'Member'}: ${m.name}`).join(' | ') 
+      const squad = sub.teamMembers && sub.teamMembers.length > 0
+        ? sub.teamMembers.map(m => `${m.role || 'Member'}: ${m.name}`).join(' | ')
         : (sub.data['Team Members'] || '-');
 
-      const statusBadge = sub.status === 'confirmed' 
+      const statusBadge = sub.status === 'confirmed'
         ? '<span style="color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">CONFIRMED</span>'
         : sub.status === 'rejected'
           ? '<span style="color:#b91c1c;background:#fee2e2;border:1px solid #fca5a5;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">REJECTED</span>'
@@ -1038,9 +1038,9 @@ export default function CompetitionFormsAdmin() {
 
   return (
     <div style={{ paddingTop: '1rem', paddingBottom: '5rem', maxWidth: '1480px', margin: '0 auto' }}>
-      
+
       {/* 3D Glassmorphic Header */}
-      <header style={{ 
+      <header style={{
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         color: '#fff',
         borderRadius: '24px',
@@ -1074,11 +1074,11 @@ export default function CompetitionFormsAdmin() {
 
         {/* Top Switcher Navigation */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
-          <button 
+          <button
             onClick={() => setActiveTab('forms')}
-            style={{ 
-              background: activeTab === 'forms' ? '#dc2626' : 'rgba(255,255,255,0.08)', 
-              color: '#fff', border: '1px solid rgba(255,255,255,0.12)', padding: '0.85rem 1.4rem', 
+            style={{
+              background: activeTab === 'forms' ? '#dc2626' : 'rgba(255,255,255,0.08)',
+              color: '#fff', border: '1px solid rgba(255,255,255,0.12)', padding: '0.85rem 1.4rem',
               borderRadius: '14px', fontWeight: 700, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               boxShadow: activeTab === 'forms' ? '0 10px 25px rgba(220, 38, 38, 0.45)' : 'none',
@@ -1088,11 +1088,11 @@ export default function CompetitionFormsAdmin() {
             <span>📋</span> My Forms ({forms.length})
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveTab('submissions')}
-            style={{ 
-              background: activeTab === 'submissions' ? '#dc2626' : 'rgba(255,255,255,0.08)', 
-              color: '#fff', border: '1px solid rgba(255,255,255,0.12)', padding: '0.85rem 1.4rem', 
+            style={{
+              background: activeTab === 'submissions' ? '#dc2626' : 'rgba(255,255,255,0.08)',
+              color: '#fff', border: '1px solid rgba(255,255,255,0.12)', padding: '0.85rem 1.4rem',
               borderRadius: '14px', fontWeight: 700, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               boxShadow: activeTab === 'submissions' ? '0 10px 25px rgba(220, 38, 38, 0.45)' : 'none',
@@ -1102,11 +1102,11 @@ export default function CompetitionFormsAdmin() {
             <span>👥</span> Submissions ({submissions.length})
           </button>
 
-          <button 
+          <button
             onClick={handleStartNewForm}
-            style={{ 
+            style={{
               background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-              color: '#fff', border: 'none', padding: '0.85rem 1.6rem', 
+              color: '#fff', border: 'none', padding: '0.85rem 1.6rem',
               borderRadius: '14px', fontWeight: 800, cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               boxShadow: '0 10px 25px rgba(239, 68, 68, 0.45)'
@@ -1130,8 +1130,8 @@ export default function CompetitionFormsAdmin() {
       {activeTab === 'forms' && (
         <div>
           {forms.length === 0 ? (
-            <div style={{ 
-              background: '#fff', borderRadius: '24px', border: '2px dashed #cbd5e1', 
+            <div style={{
+              background: '#fff', borderRadius: '24px', border: '2px dashed #cbd5e1',
               padding: '5rem 2rem', textAlign: 'center',
               boxShadow: '0 10px 30px rgba(0,0,0,0.03)'
             }}>
@@ -1142,11 +1142,11 @@ export default function CompetitionFormsAdmin() {
               <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 2rem auto', lineHeight: 1.6 }}>
                 Click below to start designing your custom registration form with custom fields, dropdowns, and Image 2 styling!
               </p>
-              <button 
+              <button
                 onClick={handleStartNewForm}
-                style={{ 
+                style={{
                   background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-                  color: '#fff', border: 'none', padding: '1rem 2.2rem', 
+                  color: '#fff', border: 'none', padding: '1rem 2.2rem',
                   borderRadius: '14px', fontWeight: 800, fontSize: '1.05rem', cursor: 'pointer',
                   boxShadow: '0 10px 25px rgba(220, 38, 38, 0.4)'
                 }}
@@ -1161,12 +1161,12 @@ export default function CompetitionFormsAdmin() {
                 const matchedScope = scopesList.find(s => s.id === form.scope) || scopesList[0];
 
                 return (
-                  <div 
+                  <div
                     key={form.id}
-                    style={{ 
-                      background: '#fff', 
-                      borderRadius: '24px', 
-                      border: '1px solid #e2e8f0', 
+                    style={{
+                      background: '#fff',
+                      borderRadius: '24px',
+                      border: '1px solid #e2e8f0',
                       padding: '2rem',
                       display: 'flex',
                       flexDirection: 'column',
@@ -1181,7 +1181,7 @@ export default function CompetitionFormsAdmin() {
                     <div>
                       {/* Badges */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                        <span style={{ 
+                        <span style={{
                           fontSize: '0.78rem', fontWeight: 800, padding: '0.35rem 0.85rem', borderRadius: '100px',
                           background: `${matchedScope.color}15`,
                           color: matchedScope.color,
@@ -1191,7 +1191,7 @@ export default function CompetitionFormsAdmin() {
                           <span>{matchedScope.icon}</span> {matchedScope.name}
                         </span>
 
-                        <span style={{ 
+                        <span style={{
                           fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', borderRadius: '100px',
                           background: form.isActive ? '#dcfce7' : '#fee2e2',
                           color: form.isActive ? '#15803d' : '#b91c1c'
@@ -1223,11 +1223,11 @@ export default function CompetitionFormsAdmin() {
 
                       {/* Linked Competition Status Badge or Standalone Public Link */}
                       {form.isStandalone ? (
-                        <div style={{ 
-                          background: '#eff6ff', 
-                          border: '1px solid #bfdbfe', 
-                          borderRadius: '12px', 
-                          padding: '0.65rem 0.85rem', 
+                        <div style={{
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '12px',
+                          padding: '0.65rem 0.85rem',
                           marginBottom: '1.25rem',
                           display: 'flex',
                           alignItems: 'center',
@@ -1240,14 +1240,14 @@ export default function CompetitionFormsAdmin() {
                             <code style={{ background: '#dbeafe', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.78rem' }}>/forms/{form.slug}</code>
                           </div>
                           <div style={{ display: 'flex', gap: '0.45rem' }}>
-                            <a 
-                              href={`/forms/${encodeURIComponent(form.slug)}`} 
-                              target="_blank" 
+                            <a
+                              href={`/forms/${encodeURIComponent(form.slug)}`}
+                              target="_blank"
                               style={{ color: '#2563eb', fontWeight: 800, textDecoration: 'none', fontSize: '0.78rem', background: '#fff', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid #bfdbfe' }}
                             >
                               Open Form ↗
                             </a>
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 const url = `${window.location.origin}/forms/${form.slug}`;
@@ -1261,11 +1261,11 @@ export default function CompetitionFormsAdmin() {
                           </div>
                         </div>
                       ) : form.competitionSlug ? (
-                        <div style={{ 
-                          background: '#eff6ff', 
-                          border: '1px solid #bfdbfe', 
-                          borderRadius: '12px', 
-                          padding: '0.65rem 0.85rem', 
+                        <div style={{
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '12px',
+                          padding: '0.65rem 0.85rem',
                           marginBottom: '1.25rem',
                           display: 'flex',
                           alignItems: 'center',
@@ -1278,16 +1278,16 @@ export default function CompetitionFormsAdmin() {
                             <span style={{ color: '#0f172a' }}>{stripStyledText(form.competitionTitle || form.competitionSlug)}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '0.65rem' }}>
-                            <a 
-                              href={`/competitions/${encodeURIComponent(form.competitionSlug)}`} 
-                              target="_blank" 
+                            <a
+                              href={`/competitions/${encodeURIComponent(form.competitionSlug)}`}
+                              target="_blank"
                               style={{ color: '#2563eb', fontWeight: 800, textDecoration: 'none', fontSize: '0.78rem' }}
                             >
                               Page ↗
                             </a>
-                            <a 
-                              href={`/competitions/${encodeURIComponent(form.competitionSlug)}/register`} 
-                              target="_blank" 
+                            <a
+                              href={`/competitions/${encodeURIComponent(form.competitionSlug)}/register`}
+                              target="_blank"
                               style={{ color: '#dc2626', fontWeight: 800, textDecoration: 'none', fontSize: '0.78rem' }}
                             >
                               Register Form ↗
@@ -1295,11 +1295,11 @@ export default function CompetitionFormsAdmin() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{ 
-                          background: '#f8fafc', 
-                          border: '1px solid #e2e8f0', 
-                          borderRadius: '12px', 
-                          padding: '0.5rem 0.85rem', 
+                        <div style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '0.5rem 0.85rem',
                           marginBottom: '1.25rem',
                           color: '#64748b',
                           fontSize: '0.8rem',
@@ -1342,7 +1342,7 @@ export default function CompetitionFormsAdmin() {
       {/* ========================================================================= */}
       {activeTab === 'builder' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr)', gap: '2rem', alignItems: 'start' }}>
-          
+
           {/* BUILDER SETTINGS (LEFT) */}
           <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', padding: '2.25rem', boxShadow: '0 15px 35px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid #f1f5f9' }}>
@@ -1358,9 +1358,9 @@ export default function CompetitionFormsAdmin() {
               <button
                 type="button"
                 onClick={handleSaveForm}
-                style={{ 
-                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', 
-                  color: '#fff', border: 'none', padding: '0.75rem 1.75rem', 
+                style={{
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                  color: '#fff', border: 'none', padding: '0.75rem 1.75rem',
                   borderRadius: '12px', fontWeight: 800, cursor: 'pointer',
                   boxShadow: '0 8px 20px rgba(220, 38, 38, 0.35)'
                 }}
@@ -1459,10 +1459,10 @@ export default function CompetitionFormsAdmin() {
 
                 {formHeaderImage ? (
                   <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', maxHeight: '160px', marginBottom: '0.75rem' }}>
-                    <img 
-                      src={formHeaderImage} 
-                      alt="Form Header Banner Preview" 
-                      style={{ width: '100%', height: '100%', maxHeight: '160px', objectFit: 'cover', display: 'block' }} 
+                    <img
+                      src={formHeaderImage}
+                      alt="Form Header Banner Preview"
+                      style={{ width: '100%', height: '100%', maxHeight: '160px', objectFit: 'cover', display: 'block' }}
                     />
                     <div style={{ position: 'absolute', bottom: '6px', right: '8px', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '6px', backdropFilter: 'blur(4px)' }}>
                       ⚡ Optimized WebP Banner Active
@@ -1486,12 +1486,12 @@ export default function CompetitionFormsAdmin() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
                   }}>
                     <span>📁</span> {isCompressingBanner ? 'Compressing to WebP...' : 'Upload Banner (Auto WebP)'}
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleBannerUpload} 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerUpload}
                       disabled={isCompressingBanner}
-                      style={{ display: 'none' }} 
+                      style={{ display: 'none' }}
                     />
                   </label>
                   <span style={{ fontSize: '0.78rem', color: '#64748b' }}>or paste image URL:</span>
@@ -1559,9 +1559,9 @@ export default function CompetitionFormsAdmin() {
                   const isEmail = field.type === 'email';
 
                   return (
-                    <div 
+                    <div
                       key={field.id}
-                      style={{ 
+                      style={{
                         background: isEmail ? '#fff8f8' : '#ffffff',
                         border: isEmail ? '1px solid #fecaca' : '1px solid #e2e8f0',
                         borderRadius: '16px',
@@ -1605,8 +1605,8 @@ export default function CompetitionFormsAdmin() {
                               const shouldHaveOptions = ['select', 'radio', 'checkbox'].includes(newType);
                               const isTeam = newType === 'team-members';
                               const options = shouldHaveOptions ? (field.options && field.options.length > 0 ? field.options : ['Option 1', 'Option 2']) : undefined;
-                              handleUpdateField(idx, { 
-                                type: newType, 
+                              handleUpdateField(idx, {
+                                type: newType,
                                 options,
                                 teamConfig: isTeam ? (field.teamConfig || { memberCount: 4, includeGrade: true, includePhone: true }) : undefined
                               });
@@ -1749,10 +1749,10 @@ export default function CompetitionFormsAdmin() {
                           </div>
 
                           {/* STRICT MEMBER COUNT ENFORCEMENT TOGGLE */}
-                          <div style={{ 
-                            background: field.teamConfig?.enforceExactCount ? '#fef2f2' : '#ffffff', 
-                            padding: '0.85rem 1rem', 
-                            borderRadius: '10px', 
+                          <div style={{
+                            background: field.teamConfig?.enforceExactCount ? '#fef2f2' : '#ffffff',
+                            padding: '0.85rem 1rem',
+                            borderRadius: '10px',
                             border: field.teamConfig?.enforceExactCount ? '1.5px solid #f87171' : '1px solid #bbf7d0',
                             transition: 'all 0.2s ease'
                           }}>
@@ -1771,7 +1771,7 @@ export default function CompetitionFormsAdmin() {
                               <span>🔒 Enforce Strict Member Count (Must fill ALL {field.teamConfig?.memberCount || 4} members before submitting)</span>
                             </label>
                             <p style={{ margin: '0.35rem 0 0 1.8rem', fontSize: '0.75rem', color: field.teamConfig?.enforceExactCount ? '#b91c1c' : '#15803d', fontWeight: 600 }}>
-                              {field.teamConfig?.enforceExactCount 
+                              {field.teamConfig?.enforceExactCount
                                 ? `⚠️ STRICT MODE ON: Candidates cannot submit the registration unless details for all ${field.teamConfig?.memberCount || 4} members are provided.`
                                 : `✓ FLEXIBLE MODE: Candidates can submit with fewer members if team is not full (Only Team Leader is strictly required).`}
                             </p>
@@ -1803,9 +1803,9 @@ export default function CompetitionFormsAdmin() {
                           {/* Interactive Option Chips */}
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.65rem' }}>
                             {(field.options || []).map((opt, oi) => (
-                              <span 
+                              <span
                                 key={oi}
-                                style={{ 
+                                style={{
                                   background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe',
                                   padding: '0.25rem 0.65rem', borderRadius: '100px', fontSize: '0.78rem', fontWeight: 700,
                                   display: 'inline-flex', alignItems: 'center', gap: '0.4rem'
@@ -2163,7 +2163,7 @@ export default function CompetitionFormsAdmin() {
 
               {/* Competition Selection Grid */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '0.35rem' }}>
-                
+
                 {/* Option 0A: Standalone Public Event Form (Non-competition / Day Invites / Special Event) */}
                 <div
                   onClick={() => {
@@ -2250,7 +2250,7 @@ export default function CompetitionFormsAdmin() {
                 {competitionsList.map((comp) => {
                   const isSelected = selectedCompetitionSlug === comp.slug;
                   const cleanTitle = stripStyledText(comp.title);
-                  
+
                   // Check if another form is currently linked to this competition
                   const otherLinkedForm = forms.find(f => f.competitionSlug === comp.slug && f.id !== editingFormId);
 
@@ -2391,9 +2391,9 @@ export default function CompetitionFormsAdmin() {
             </div>
 
             {/* The Exact Image 2 Card Replica */}
-            <div 
+            <div
               className="form-preview-scrollable"
-              style={{ 
+              style={{
                 background: '#ffffff',
                 borderRadius: '24px',
                 border: '1px solid #e2e8f0',
@@ -2417,10 +2417,10 @@ export default function CompetitionFormsAdmin() {
                   borderRadius: '24px 24px 0 0',
                   position: 'relative'
                 }}>
-                  <img 
-                    src={formHeaderImage} 
-                    alt="Form Header Banner" 
-                    style={{ width: '100%', height: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} 
+                  <img
+                    src={formHeaderImage}
+                    alt="Form Header Banner"
+                    style={{ width: '100%', height: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }}
                   />
                 </div>
               ) : null}
@@ -2443,9 +2443,9 @@ export default function CompetitionFormsAdmin() {
                   // 1. Highlighted Pink/Red Email Box (Exact Match to Image 2!)
                   if (isEmailBox) {
                     return (
-                      <div 
+                      <div
                         key={field.id}
-                        style={{ 
+                        style={{
                           background: '#fff8f8',
                           border: '1px solid #fecaca',
                           borderRadius: '14px',
@@ -2560,13 +2560,13 @@ export default function CompetitionFormsAdmin() {
                       {field.type === 'file' && (
                         <div style={{ border: '2px dashed #cbd5e1', borderRadius: '14px', padding: '1.5rem', textAlign: 'center', background: '#f8fafc' }}>
                           <span style={{ fontSize: '1.75rem', display: 'block', marginBottom: '0.3rem' }}>📎</span>
-                          <input 
-                            type="file" 
+                          <input
+                            type="file"
                             onChange={(e) => {
                               const f = e.target.files?.[0];
                               if (f) setPreviewAnswers({ ...previewAnswers, [field.label]: f.name + ' (Uploaded)' });
-                            }} 
-                            style={{ fontSize: '0.85rem' }} 
+                            }}
+                            style={{ fontSize: '0.85rem' }}
                           />
                         </div>
                       )}
@@ -2631,7 +2631,7 @@ export default function CompetitionFormsAdmin() {
       {/* ========================================================================= */}
       {activeTab === 'submissions' && (
         <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', padding: '2.5rem', boxShadow: '0 15px 40px rgba(0,0,0,0.04)' }}>
-          
+
           {/* Header & Export */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>
             <div>
@@ -2670,9 +2670,9 @@ export default function CompetitionFormsAdmin() {
                 type="button"
                 onClick={handleExportCSV}
                 title="Download filtered registrations as an Excel-compatible CSV"
-                style={{ 
-                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
-                  color: '#fff', border: 'none', padding: '0.85rem 1.35rem', 
+                style={{
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  color: '#fff', border: 'none', padding: '0.85rem 1.35rem',
                   borderRadius: '12px', fontWeight: 800, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '0.5rem',
                   boxShadow: '0 8px 20px rgba(4, 120, 87, 0.35)'
@@ -2685,9 +2685,9 @@ export default function CompetitionFormsAdmin() {
                 type="button"
                 onClick={handleExportPDF}
                 title="Download or print filtered registrations as a complete PDF Dossier Report"
-                style={{ 
-                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
-                  color: '#fff', border: 'none', padding: '0.85rem 1.35rem', 
+                style={{
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  color: '#fff', border: 'none', padding: '0.85rem 1.35rem',
                   borderRadius: '12px', fontWeight: 800, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '0.5rem',
                   boxShadow: '0 8px 20px rgba(220, 38, 38, 0.35)'
@@ -2824,7 +2824,7 @@ export default function CompetitionFormsAdmin() {
 
               {/* Normal Forms Button (Standalone Public Events from Image 1 & 3) */}
               {(() => {
-                const normalFormsCount = submissions.filter(s => 
+                const normalFormsCount = submissions.filter(s =>
                   (s as any).isStandalone ||
                   s.competitionSlug === '__standalone__' ||
                   forms.find(f => f.id === s.formId)?.isStandalone
@@ -2862,7 +2862,7 @@ export default function CompetitionFormsAdmin() {
               {competitionsList.map(comp => {
                 const isSelected = filterCompetition === comp.slug;
                 const cleanTitle = stripStyledText(comp.title);
-                const compSubCount = submissions.filter(s => 
+                const compSubCount = submissions.filter(s =>
                   s.competitionSlug === comp.slug ||
                   (s.competitionTitle && s.competitionTitle.toLowerCase().includes(cleanTitle.toLowerCase())) ||
                   (s.data && (
@@ -2897,10 +2897,10 @@ export default function CompetitionFormsAdmin() {
                     }}
                   >
                     {comp.image && (
-                      <img 
-                        src={comp.image} 
-                        alt={cleanTitle} 
-                        style={{ width: '20px', height: '20px', borderRadius: '5px', objectFit: 'cover' }} 
+                      <img
+                        src={comp.image}
+                        alt={cleanTitle}
+                        style={{ width: '20px', height: '20px', borderRadius: '5px', objectFit: 'cover' }}
                       />
                     )}
                     <span>{cleanTitle}</span>
@@ -3032,7 +3032,7 @@ export default function CompetitionFormsAdmin() {
                     return (
                       <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                         <td style={{ padding: '1rem' }}>
-                          <span style={{ 
+                          <span style={{
                             fontSize: '0.78rem', fontWeight: 800, padding: '0.3rem 0.75rem', borderRadius: '100px',
                             background: `${matched.color}15`,
                             color: matched.color
@@ -3042,10 +3042,10 @@ export default function CompetitionFormsAdmin() {
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <span style={{ 
-                              fontFamily: 'monospace', 
-                              fontWeight: 800, 
-                              fontSize: '0.82rem', 
+                            <span style={{
+                              fontFamily: 'monospace',
+                              fontWeight: 800,
+                              fontSize: '0.82rem',
                               color: '#0f172a',
                               background: '#f1f5f9',
                               padding: '0.25rem 0.6rem',
@@ -3097,9 +3097,9 @@ export default function CompetitionFormsAdmin() {
                             const { date, time } = formatSubmissionDateTime(sub.submittedAt);
                             return (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <span style={{ 
-                                  fontSize: '0.85rem', 
-                                  fontWeight: 800, 
+                                <span style={{
+                                  fontSize: '0.85rem',
+                                  fontWeight: 800,
                                   color: '#0f172a',
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -3108,9 +3108,9 @@ export default function CompetitionFormsAdmin() {
                                   <span>📅</span> {date}
                                 </span>
                                 {time && (
-                                  <span style={{ 
-                                    fontSize: '0.78rem', 
-                                    fontWeight: 800, 
+                                  <span style={{
+                                    fontSize: '0.78rem',
+                                    fontWeight: 800,
                                     color: '#dc2626',
                                     background: '#fef2f2',
                                     border: '1px solid #fee2e2',
@@ -3129,7 +3129,7 @@ export default function CompetitionFormsAdmin() {
                           })()}
                         </td>
                         <td style={{ padding: '1rem' }}>
-                          <span style={{ 
+                          <span style={{
                             fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '100px',
                             background: sub.status === 'confirmed' ? '#dcfce7' : sub.status === 'pending' ? '#fef3c7' : '#fee2e2',
                             color: sub.status === 'confirmed' ? '#15803d' : sub.status === 'pending' ? '#b45309' : '#b91c1c'
@@ -3170,7 +3170,7 @@ export default function CompetitionFormsAdmin() {
       {selectedSubmission && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
           <div style={{ background: '#fff', borderRadius: '24px', maxWidth: '720px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '2.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', position: 'relative' }}>
-            <button 
+            <button
               type="button"
               onClick={() => setSelectedSubmission(null)}
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -3184,7 +3184,7 @@ export default function CompetitionFormsAdmin() {
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   APPLICATION DOSSIER • {selectedSubmission.scope.toUpperCase()}
                 </span>
-                
+
                 {/* Current Status Pill */}
                 <span style={{
                   fontSize: '0.72rem',
@@ -3203,15 +3203,15 @@ export default function CompetitionFormsAdmin() {
 
               {/* Clean Monospace Registration ID */}
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ 
-                  fontFamily: 'monospace', 
-                  fontSize: '0.85rem', 
-                  fontWeight: 900, 
-                  color: '#0f172a', 
-                  background: '#f1f5f9', 
-                  padding: '0.25rem 0.65rem', 
-                  borderRadius: '8px', 
-                  border: '1px solid #cbd5e1' 
+                <span style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.85rem',
+                  fontWeight: 900,
+                  color: '#0f172a',
+                  background: '#f1f5f9',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1'
                 }}>
                   {selectedSubmission.id}
                 </span>
@@ -3261,13 +3261,13 @@ export default function CompetitionFormsAdmin() {
                       <span>📅</span> Real Submitted Date: <strong style={{ color: '#0f172a' }}>{date}</strong>
                     </span>
                     {time && (
-                      <span style={{ 
-                        fontSize: '0.82rem', 
-                        fontWeight: 800, 
-                        color: '#dc2626', 
-                        background: '#fef2f2', 
+                      <span style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        color: '#dc2626',
+                        background: '#fef2f2',
                         border: '1px solid #fecaca',
-                        padding: '0.2rem 0.65rem', 
+                        padding: '0.2rem 0.65rem',
                         borderRadius: '8px',
                         display: 'inline-flex',
                         alignItems: 'center',

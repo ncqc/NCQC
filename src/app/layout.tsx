@@ -59,23 +59,32 @@ const syncopate = Syncopate({
   variable: "--font-brutalist",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ncqc27.vercel.app';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ncquizclub.com';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Nalanda College Quiz Club | NCQC',
-    template: '%s | Nalanda College Quiz Club',
+    default: 'Nalanda College Quiz Club | NCQC - Official Website (ncquizclub.com)',
+    template: '%s | Nalanda College Quiz Club | NCQC',
   },
-  description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+  description: 'Official website of the Nalanda College Quiz Club (NCQC) - ncquizclub.com. Established in 1982 at Nalanda College, Colombo 10. Premier inter-school quiz arena and home to Intellectus 2026.',
   keywords: [
+    'ncquizclub',
+    'ncquizclub.com',
+    'www.ncquizclub.com',
+    'https://ncquizclub.com',
     'Nalanda College Quiz Club',
     'NCQC',
+    'NCQC Nalanda',
+    'Nalanda Quiz Club',
     'Nalanda College Colombo 10',
     'Intellectus 2026',
+    'Intellectus',
+    'Intellectus Quiz',
     'Intellectus inter-school quiz competition',
     'Sri Lanka school quiz clubs',
     'general knowledge quiz Sri Lanka',
+    'all island quiz competition Sri Lanka',
     'Nalanda College societies',
     'Sinhala and English medium quiz',
     'Advanced Level students quiz',
@@ -83,20 +92,19 @@ export const metadata: Metadata = {
     'education and science quiz Sri Lanka',
     'Nalanda College',
     'Quiz Club',
-    'Intellectus',
   ],
   authors: [{ name: 'Nalanda College Quiz Club', url: siteUrl }],
   creator: 'Nalanda College Quiz Club',
   publisher: 'Nalanda College Colombo 10',
   applicationName: 'Nalanda College Quiz Club Portal',
   alternates: {
-    canonical: '/',
+    canonical: 'https://ncquizclub.com',
   },
   openGraph: {
-    title: 'Nalanda College Quiz Club | NCQC',
-    description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+    title: 'Nalanda College Quiz Club | NCQC - Official Website (ncquizclub.com)',
+    description: 'Official website of the Nalanda College Quiz Club (NCQC) - ncquizclub.com. Join Intellectus 2026, register for competitions, and explore quiz achievements.',
     url: siteUrl,
-    siteName: 'Nalanda College Quiz Club',
+    siteName: 'Nalanda College Quiz Club | ncquizclub.com',
     images: [
       {
         url: '/homelogo.png',
@@ -110,8 +118,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nalanda College Quiz Club | NCQC',
-    description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+    title: 'Nalanda College Quiz Club | NCQC - Official Website (ncquizclub.com)',
+    description: 'Official website of the Nalanda College Quiz Club (NCQC) - ncquizclub.com. Join Intellectus 2026 inter-school quiz competition.',
     images: ['/homelogo.png'],
   },
   robots: {
@@ -143,10 +151,10 @@ const jsonLd = {
       '@type': 'EducationalOrganization',
       '@id': `${siteUrl}/#organization`,
       name: 'Nalanda College Quiz Club',
-      alternateName: ['NCQC', 'Nalanda Quiz Club', 'NCQC Colombo'],
+      alternateName: ['NCQC', 'ncquizclub', 'ncquizclub.com', 'Nalanda Quiz Club', 'NCQC Nalanda'],
       url: siteUrl,
       logo: `${siteUrl}/homelogo.png`,
-      description: 'Official website of the Nalanda College Quiz Club. Join the Intellectus 2026 inter-school quiz competition.',
+      description: 'Official website of the Nalanda College Quiz Club (NCQC) - ncquizclub.com. Established in 1982 at Nalanda College, Colombo 10.',
       foundingDate: '1982',
       address: {
         '@type': 'PostalAddress',
@@ -165,8 +173,14 @@ const jsonLd = {
       '@id': `${siteUrl}/#website`,
       url: siteUrl,
       name: 'Nalanda College Quiz Club',
+      alternateName: 'ncquizclub.com',
       publisher: {
         '@id': `${siteUrl}/#organization`,
+      },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${siteUrl}/competitions?q={search_term_string}`,
+        'query-input': 'required name=search_term_string',
       },
     },
   ],

@@ -32,7 +32,7 @@ export default function DigitalPassCard({
   // Verification URL that will be encoded in the QR code
   const verificationUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/verify/${encodeURIComponent(submissionId)}`
-    : `https://ncqc.lk/verify/${encodeURIComponent(submissionId)}`;
+    : `https://ncquizclub.com/verify/${encodeURIComponent(submissionId)}`;
 
   useEffect(() => {
     QRCode.toDataURL(verificationUrl, {

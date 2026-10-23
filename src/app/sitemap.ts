@@ -4,7 +4,7 @@ import { getAchievementsData } from '@/data/achievements';
 import { getProjectsData } from '@/data/projects';
 import { getGalleryAlbums } from '@/data/gallery';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ncqc27.vercel.app';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ncquizclub.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const currentDate = new Date();
@@ -14,50 +14,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${siteUrl}`,
       lastModified: currentDate,
-      changeFrequency: 'weekly',
+      changeFrequency: 'daily',
       priority: 1.0,
-    },
-    {
-      url: `${siteUrl}/about`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
-      url: `${siteUrl}/team`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.9,
     },
     {
       url: `${siteUrl}/competitions`,
       lastModified: currentDate,
-      changeFrequency: 'weekly',
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+    {
+      url: `${siteUrl}/submissions-hub`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
       priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/about`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.85,
     },
     {
       url: `${siteUrl}/achievements`,
       lastModified: currentDate,
       changeFrequency: 'weekly',
-      priority: 0.9,
+      priority: 0.85,
+    },
+    {
+      url: `${siteUrl}/team`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.85,
     },
     {
       url: `${siteUrl}/projects`,
       lastModified: currentDate,
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${siteUrl}/gallery`,
       lastModified: currentDate,
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: `${siteUrl}/contact`,
       lastModified: currentDate,
-      changeFrequency: 'yearly',
-      priority: 0.7,
+      changeFrequency: 'monthly',
+      priority: 0.75,
     },
   ];
 
