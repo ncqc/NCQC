@@ -89,6 +89,18 @@ function parseToDateAndTimeString(str?: string): { datePart: string; timePart: s
   return { datePart: '', timePart: '00:00' };
 }
 
+function parseDateToMs(str?: string): number | null {
+  if (!str) return null;
+  try {
+    const cleaned = str.replace(/\bat\b/gi, ' ').replace(/\s+/g, ' ').trim();
+    const d = new Date(cleaned);
+    if (!isNaN(d.getTime())) return d.getTime();
+    const d2 = new Date(str);
+    if (!isNaN(d2.getTime())) return d2.getTime();
+  } catch {}
+  return null;
+}
+
 function formatFromDateAndTime(datePart: string, timePart: string): string {
   if (!datePart) return '';
   const [year, month, day] = datePart.split('-').map(Number);
@@ -118,9 +130,8 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [error, setError] = useState('');
-  const [pickerTarget, setPickerTarget] = useState<'eventDate' | 'deadline' | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<'startDate' | 'eventDate' | 'deadline' | null>(null);
   const [mobileTab, setMobileTab] = useState<'content' | 'settings'>('content');
-  const [otherStarredCount, setOtherStarredCount] = useState<number>(0);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,63 +162,18 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
     }
   };
 
-  const handleToggleStarred = async (checked: boolean) => {
-    if (checked) {
-      if (otherStarredCount >= 3) {
-        alert('⚠️ You can only feature a maximum of 3 competitions on the Home Page!\n\nThere are already 3 competitions featured. Please remove the star (★) from another competition first before featuring this one.');
-        return;
-      }
-    }
-    updateField('isStarred', checked);
-
-    try {
-      const setRes = await fetch('/api/settings');
-      const setData = await setRes.json();
-      const currentList: string[] = setData?.settings?.starredCompetitionSlugs || [];
-      const currentSlug = competition?.slug || '';
-      const nextList = checked
-        ? Array.from(new Set([...currentList, currentSlug]))
-        : currentList.filter(s => s !== currentSlug);
-
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ starredCompetitionSlugs: nextList })
-      });
-    } catch (e) {
-      console.error('Failed to sync star status:', e);
-    }
-  };
-
   useEffect(() => {
     params.then(async (resolvedParams) => {
       let loadedData: Competition | null = null;
-      let starredList: string[] = [];
-
-      try {
-        const setRes = await fetch('/api/settings');
-        const setData = await setRes.json();
-        if (setData.success && setData.settings) {
-          starredList = setData.settings.starredCompetitionSlugs || [];
-        }
-      } catch (err) {
-        console.warn('Failed to load settings:', err);
-      }
+      const decodedParam = decodeURIComponent(resolvedParams.slug || '').trim().toLowerCase();
 
       // 1. Try fetching from Competitions API
-      const decodedParam = decodeURIComponent(resolvedParams.slug || '').trim().toLowerCase();
       try {
-        const compRes = await fetch('/api/competitions');
+        const compRes = await fetch('/api/competitions', { cache: 'no-store' });
         const compJson = await compRes.json();
 
         if (compJson.success && compJson.data && compJson.data.length > 0) {
           const compList = compJson.data as Competition[];
-          const others = compList.filter(c => {
-            const cDec = decodeURIComponent(c.slug || '').trim().toLowerCase();
-            return cDec !== decodedParam && starredList.includes(c.slug);
-          });
-          setOtherStarredCount(others.length);
-
           const match = compList.find((c) => {
             const cDecoded = decodeURIComponent(c.slug || '').trim().toLowerCase();
             return cDecoded === decodedParam || c.slug === resolvedParams.slug || (c.slug && c.slug.trim() === resolvedParams.slug.trim());
@@ -218,14 +184,8 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
         console.warn('Competitions API fetch failed, trying local fallback:', apiErr);
       }
 
-      // 2. Local fallback if not found in Supabase
+      // 2. Local fallback if not found in API
       if (!loadedData) {
-        const others = competitionsData.filter(c => {
-          const cDec = decodeURIComponent(c.slug || '').trim().toLowerCase();
-          return cDec !== decodedParam && starredList.includes(c.slug);
-        });
-        setOtherStarredCount(others.length);
-
         const local = competitionsData.find((c) => {
           const cDecoded = decodeURIComponent(c.slug || '').trim().toLowerCase();
           return cDecoded === decodedParam || c.slug === resolvedParams.slug || (c.slug && c.slug.trim() === resolvedParams.slug.trim());
@@ -236,16 +196,18 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
       }
 
       if (loadedData) {
-        const isCurrentStarred = starredList.includes(resolvedParams.slug) || starredList.includes(loadedData.slug);
-        const initData: Competition = { ...loadedData, isStarred: isCurrentStarred };
+        const initData: Competition = { ...loadedData };
         if (!initData.contentHtml && initData.fullDesc) {
           initData.contentHtml = initData.fullDesc.map(p => `<p>${p}</p>`).join('');
         }
+        if (!initData.startDate) {
+          initData.startDate = initData.eventDate || initData.date || 'December 15, 2026 at 10:00 AM';
+        }
         if (!initData.eventDate) {
-          initData.eventDate = initData.date || 'October 25, 2026';
+          initData.eventDate = initData.startDate;
         }
         if (!initData.deadline) {
-          initData.deadline = initData.date || 'October 25, 2026 at 12:00 AM';
+          initData.deadline = 'December 20, 2026 at 11:59 PM';
         }
         if (!initData.rulesButtonText) {
           initData.rulesButtonText = 'Download Rules & Regs';
@@ -388,28 +350,6 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            background: competition.isStarred ? '#fef3c7' : '#f1f5f9',
-            border: competition.isStarred ? '1.5px solid #f59e0b' : '1px solid #cbd5e1',
-            borderRadius: '8px',
-            padding: '0.45rem 0.8rem',
-            cursor: 'pointer',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            color: competition.isStarred ? '#b45309' : '#475569',
-            transition: 'all 0.2s'
-          }}>
-            <input 
-              type="checkbox"
-              checked={!!competition.isStarred}
-              onChange={(e) => handleToggleStarred(e.target.checked)}
-              style={{ cursor: 'pointer', accentColor: '#f59e0b', width: '15px', height: '15px' }}
-            />
-            <span>{competition.isStarred ? '★ Featured on Home' : '☆ Feature on Home'}</span>
-          </label>
 
           <button 
             onClick={handleSave} disabled={isSaving}
@@ -568,40 +508,143 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
             Configure titles, countdown dates, downloadable rules, and submission buttons.
           </p>
 
-          {/* Home Page Featured Star Toggle Card */}
-          <div style={{
-            background: competition.isStarred ? 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)' : '#fff',
-            border: competition.isStarred ? '1.5px solid #f59e0b' : '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '1rem',
-            marginBottom: '1.25rem',
-            boxShadow: competition.isStarred ? '0 4px 12px rgba(245, 158, 11, 0.15)' : 'none'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer' }}>
-                <input 
-                  type="checkbox"
-                  checked={!!competition.isStarred}
-                  onChange={(e) => handleToggleStarred(e.target.checked)}
-                  style={{ cursor: 'pointer', accentColor: '#f59e0b', width: '16px', height: '16px' }}
-                />
-                <span>⭐ Feature on Home Page</span>
-              </label>
-              <span style={{
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                color: competition.isStarred ? '#b45309' : '#64748b',
-                background: competition.isStarred ? '#fde68a' : '#e2e8f0',
-                padding: '0.15rem 0.5rem',
-                borderRadius: '999px'
+          {/* Competition Mode & Automation Scheduler */}
+          {(() => {
+            const startMs = parseDateToMs(competition.startDate || competition.eventDate || competition.date);
+            const deadlineMs = parseDateToMs(competition.deadline);
+            const now = Date.now();
+            const isPast = deadlineMs !== null && now >= deadlineMs;
+            const isUpcoming = !isPast && startMs !== null && now < startMs;
+            const isOngoing = !isPast && !isUpcoming;
+
+            return (
+              <div style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                border: '2px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.04)'
               }}>
-                {competition.isStarred ? '★ Featured' : 'Off'}
-              </span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', lineHeight: 1.4 }}>
-              Displays in &ldquo;Upcoming Battles&rdquo; section on Home Page. Strict system limit: maximum 3 competitions.
-            </p>
-          </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🎯</span> Competition Stage
+                  </label>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: '100px',
+                    background: isPast ? '#f1f5f9' : (isUpcoming ? '#f5f3ff' : '#ecfdf5'),
+                    color: isPast ? '#64748b' : (isUpcoming ? '#7c3aed' : '#059669'),
+                    border: `1px solid ${isPast ? '#cbd5e1' : (isUpcoming ? '#ddd6fe' : '#a7f3d0')}`
+                  }}>
+                    {isPast ? '🏁 Past Competition' : (isUpcoming ? '⏳ Upcoming' : '🟢 Ongoing Live')}
+                  </span>
+                </div>
+
+                <p style={{ margin: '0 0 1rem 0', fontSize: '0.74rem', color: '#64748b', lineHeight: 1.45 }}>
+                  Choose whether this competition is <strong>Ongoing</strong> (active now) or <strong>Upcoming</strong> (scheduled to launch at a future date & time).
+                </p>
+
+                {/* Switcher Buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curStartMs = parseDateToMs(competition.startDate || competition.eventDate);
+                      if (!curStartMs || curStartMs <= Date.now()) {
+                        const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        const y = future.getFullYear();
+                        const m = String(future.getMonth() + 1).padStart(2, '0');
+                        const d = String(future.getDate()).padStart(2, '0');
+                        const formatted = formatFromDateAndTime(`${y}-${m}-${d}`, '10:00');
+                        updateMultipleFields({ startDate: formatted, eventDate: formatted, date: formatted });
+                      }
+                      setPickerTarget('startDate');
+                    }}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      borderRadius: '12px',
+                      border: isUpcoming ? '2px solid #7c3aed' : '1px solid #cbd5e1',
+                      background: isUpcoming ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)' : '#ffffff',
+                      color: isUpcoming ? '#ffffff' : '#334155',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: isUpcoming ? '0 4px 14px rgba(124, 58, 237, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>⏳</span>
+                    <span>Upcoming</span>
+                    <span style={{ fontSize: '0.64rem', opacity: isUpcoming ? 0.95 : 0.65 }}>Scheduled Launch</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const y = now.getFullYear();
+                      const m = String(now.getMonth() + 1).padStart(2, '0');
+                      const d = String(now.getDate()).padStart(2, '0');
+                      const h = String(now.getHours()).padStart(2, '0');
+                      const min = String(now.getMinutes()).padStart(2, '0');
+                      const formatted = formatFromDateAndTime(`${y}-${m}-${d}`, `${h}:${min}`);
+                      updateMultipleFields({ startDate: formatted, eventDate: formatted, date: formatted });
+                    }}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      borderRadius: '12px',
+                      border: isOngoing ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: isOngoing ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#ffffff',
+                      color: isOngoing ? '#ffffff' : '#334155',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: isOngoing ? '0 4px 14px rgba(5, 150, 105, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>🟢</span>
+                    <span>Ongoing</span>
+                    <span style={{ fontSize: '0.64rem', opacity: isOngoing ? 0.95 : 0.65 }}>Active Now</span>
+                  </button>
+                </div>
+
+                {/* Explanation text */}
+                <div style={{
+                  background: isUpcoming ? '#f5f3ff' : '#ecfdf5',
+                  border: `1px solid ${isUpcoming ? '#ddd6fe' : '#a7f3d0'}`,
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  fontSize: '0.75rem',
+                  lineHeight: 1.45,
+                  color: isUpcoming ? '#5b21b6' : '#065f46'
+                }}>
+                  {isUpcoming ? (
+                    <div>
+                      <strong>🤖 Auto-Switch Logic:</strong> Stays in the <strong>Upcoming</strong> tab until the Start Date & Time arrives. The moment the clock strikes that time, it automatically transitions to <strong>Ongoing</strong>!
+                    </div>
+                  ) : (
+                    <div>
+                      <strong>🤖 Auto-Switch Logic:</strong> Live right now under <strong>Ongoing</strong>. The moment the countdown timer hits 0 at the Deadline, it automatically moves to <strong>Past Competitions</strong>!
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Title */}
           <StyledFieldEditor 
@@ -1038,12 +1081,12 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
       {pickerTarget && (
         <DateTimePickerModal
           isOpen={true}
-          title={pickerTarget === 'deadline' ? 'SELECT DEADLINE DATE & TIME' : 'SELECT EVENT DATE & TIME'}
-          initialValue={pickerTarget === 'deadline' ? (competition.deadline || competition.date) : (competition.eventDate || competition.date)}
+          title={pickerTarget === 'deadline' ? 'SELECT DEADLINE DATE & TIME' : 'SELECT START / EVENT DATE & TIME'}
+          initialValue={pickerTarget === 'deadline' ? (competition.deadline || competition.date) : (competition.startDate || competition.eventDate || competition.date)}
           onClose={() => setPickerTarget(null)}
           onSelect={(formatted) => {
-            if (pickerTarget === 'eventDate') {
-              updateMultipleFields({ eventDate: formatted, date: formatted });
+            if (pickerTarget === 'startDate' || pickerTarget === 'eventDate') {
+              updateMultipleFields({ startDate: formatted, eventDate: formatted, date: formatted });
             } else if (pickerTarget === 'deadline') {
               updateField('deadline', formatted);
             }

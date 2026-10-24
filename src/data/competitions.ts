@@ -7,7 +7,9 @@ export interface Competition {
   title: string;
   date: string;
   eventDate?: string;
+  startDate?: string;
   deadline?: string;
+  statusType?: 'auto' | 'upcoming' | 'ongoing' | 'past';
   shortDesc: string;
   fullDesc: string[];
   image: string;
@@ -30,6 +32,50 @@ export interface Competition {
 }
 
 export const competitionsData: Competition[] = [
+  {
+    "slug": "competition-1792855214893",
+    "title": "New Competition 2026",
+    "date": "October 24, 2026 at 08:50 PM",
+    "eventDate": "October 24, 2026 at 08:50 PM",
+    "deadline": "October 24, 2026 at 11:59 PM",
+    "shortDesc": "Enter a short summary description for the competition cards.",
+    "fullDesc": [
+      "Overview of the competition guidelines and eligibility requirements."
+    ],
+    "image": "/api/media/images/image-1792855383695.webp",
+    "contentHtml": "<h1>Competition&nbsp;Guidelines&nbsp;&amp;&nbsp;Rules</h1><p>Start&nbsp;designing&nbsp;your&nbsp;competition&nbsp;page&nbsp;content&nbsp;here&nbsp;using&nbsp;the&nbsp;Word-like&nbsp;ribbon&nbsp;editor!</p>",
+    "rulesButtonText": "Download Rules & Regs",
+    "rulesButtonLink": "#",
+    "submissionsButtonText": "Register / Submissions →",
+    "submissionsButtonLink": "#",
+    "customButtons": [],
+    "sidebarWidget": null,
+    "created_at": "2026-10-24T15:20:15.772962+00:00",
+    "startDate": "October 24, 2026 at 08:50 PM",
+    "isStarred": false
+  },
+  {
+    "slug": "competition-1792854900270",
+    "title": "New Competition 2026",
+    "date": "October 25, 2026 at 12:00 AM",
+    "eventDate": "October 25, 2026 at 12:00 AM",
+    "deadline": "December 20, 2026 at 11:59 PM",
+    "shortDesc": "Enter a short summary description for the competition cards.",
+    "fullDesc": [
+      "Overview of the competition guidelines and eligibility requirements."
+    ],
+    "image": "/api/media/images/image-1792854982587.webp",
+    "contentHtml": "<h1>Competition&nbsp;Guidelines&nbsp;&amp;&nbsp;Rules</h1><p>Start&nbsp;designing&nbsp;your&nbsp;competition&nbsp;page&nbsp;content&nbsp;here&nbsp;using&nbsp;the&nbsp;Word-like&nbsp;ribbon&nbsp;editor!</p>",
+    "rulesButtonText": "Download Rules & Regs",
+    "rulesButtonLink": "#",
+    "submissionsButtonText": "Register / Submissions →",
+    "submissionsButtonLink": "#",
+    "customButtons": [],
+    "sidebarWidget": null,
+    "created_at": "2026-10-24T15:15:00.72059+00:00",
+    "startDate": "October 25, 2026 at 12:00 AM",
+    "isStarred": false
+  },
   {
     "slug": "competition-1791826378798",
     "title": "New Competition 2026",
@@ -92,9 +138,10 @@ export async function getCompetitionsData(): Promise<Competition[]> {
       .neq('slug', '__site_settings__')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
+    if (!error && Array.isArray(data)) {
       return (data as Competition[]).map(c => ({
         ...c,
+        startDate: c.startDate || c.eventDate || c.date,
         image: maskImageUrl(c.image),
         isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
       }));
@@ -104,6 +151,7 @@ export async function getCompetitionsData(): Promise<Competition[]> {
   }
   return competitionsData.filter(c => c.slug !== '__site_settings__').map(c => ({
     ...c,
+    startDate: c.startDate || c.eventDate || c.date,
     image: maskImageUrl(c.image),
     isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
   }));
@@ -122,7 +170,7 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
       .select('*')
       .neq('slug', '__site_settings__');
 
-    if (!error && data && data.length > 0) {
+    if (!error && Array.isArray(data)) {
       const match = (data as Competition[]).find((c) => {
         const cDecoded = decodeURIComponent(c.slug || '').trim().toLowerCase();
         const cSlugified = cDecoded.replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
@@ -131,10 +179,12 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
       if (match) {
         return {
           ...match,
+          startDate: match.startDate || match.eventDate || match.date,
           image: maskImageUrl(match.image),
           isStarred: starredSlugs.has(match.slug) || (match.isStarred === true)
         };
       }
+      return null;
     }
   } catch (e) {
     console.error('Supabase fetch error for competition', slug, e);
@@ -148,6 +198,7 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
   if (!fallback) return null;
   return {
     ...fallback,
+    startDate: fallback.startDate || fallback.eventDate || fallback.date,
     image: maskImageUrl(fallback.image),
     isStarred: starredSlugs.has(fallback.slug) || (fallback.isStarred === true)
   };

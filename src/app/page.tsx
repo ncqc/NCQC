@@ -5,8 +5,6 @@ import StandardOfExcellence3D from '@/components/StandardOfExcellence3D';
 import { getAchievementsData } from '@/data/achievements';
 import { getProjectsData } from '@/data/projects';
 import { getGalleryHeroImages } from '@/data/gallery';
-import { getCompetitionsData } from '@/data/competitions';
-import { getSiteSettingsAsync } from '@/data/settings';
 import RenderStyledText from '@/components/RenderStyledText';
 import { stripStyledText } from '@/utils/styledText';
 
@@ -16,8 +14,6 @@ export default async function Home() {
   const achievements = await getAchievementsData();
   const projects = await getProjectsData();
   const heroImages = await getGalleryHeroImages();
-  const competitions = await getCompetitionsData();
-  const settings = await getSiteSettingsAsync();
   
   // Get featured achievements, fallback to newest 3 if none are featured yet
   const featuredAchievements = achievements.filter(a => a.isFeatured).slice(0, 3);
@@ -26,11 +22,6 @@ export default async function Home() {
   // Get starred projects, fallback to newest 3
   const starredProjects = projects.filter(p => p.isStarred).slice(0, 3);
   const displayProjects = starredProjects.length > 0 ? starredProjects : projects.slice(0, 3);
-
-  // Get starred competitions for Home Page (maximum 3)
-  const starredList = competitions.filter(c => c.isStarred).slice(0, 3);
-  const starredCompetitions = starredList.length > 0 ? starredList : competitions.slice(0, 3);
-  const showUpcomingBattles = settings.showUpcomingBattles && starredCompetitions.length > 0;
 
   return (
     <>
@@ -62,57 +53,6 @@ export default async function Home() {
 
       {/* Modern 3D The Standard of Excellence (SuperMellow font & multi-colored 3D) */}
       <StandardOfExcellence3D />
-
-      {/* Upcoming Events (Neon/Glass Timeline) */}
-      {showUpcomingBattles && (
-        <section className="section-events">
-            <div className="container">
-                <div className="section-header reveal-fade text-center">
-                    <h2 className="section-title">Upcoming Battles</h2>
-                </div>
-                
-                <div className={`competitions-grid ${starredCompetitions.length === 1 ? 'single-comp' : ''}`}>
-                    {starredCompetitions.map((comp, index) => (
-                      <div key={comp.slug} className={`comp-card reveal-fade up ${index > 0 ? `delay-${index}` : ''}`}>
-                          <div className="comp-img-wrapper">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img 
-                                src={comp.image || '/comp1.jpg'} 
-                                alt={stripStyledText(comp.title)} 
-                                className="comp-img" 
-                                style={{ objectFit: 'cover' }}
-                              />
-                          </div>
-                          <div className="comp-info">
-                              <h3 className="comp-title" style={{ fontSize: '1.25rem' }}>
-                                <RenderStyledText text={comp.title} />
-                              </h3>
-                              <div className="comp-date-wrapper">
-                                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                  {comp.eventDate || comp.date}
-                              </div>
-                              {comp.shortDesc && (
-                                <div className="comp-date-wrapper" style={{ fontSize: '0.85rem', color: '#64748b', padding: '0 1rem', margin: '0.35rem 0', lineHeight: '1.4' }}>
-                                  <RenderStyledText text={comp.shortDesc} />
-                                </div>
-                              )}
-                              <div className="comp-divider"></div>
-                              <div style={{ padding: '0 1rem', width: '100%' }}>
-                                <Link href={`/competitions/${encodeURIComponent(comp.slug.trim())}`} prefetch={true} className="comp-btn-modern" style={{ textAlign: 'center', display: 'block' }}>
-                                  View Details &rarr;
-                                </Link>
-                              </div>
-                          </div>
-                      </div>
-                    ))}
-                </div>
-
-                <div className="text-center mt-4">
-                    <Link href="/competitions" prefetch={true} className="btn-outline-red">Explore All Competitions</Link>
-                </div>
-            </div>
-        </section>
-      )}
 
       {/* Featured Achievements */}
       <section className="section-achievements-preview">
