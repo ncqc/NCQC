@@ -207,9 +207,13 @@ export async function POST(req: Request) {
       updatedList = [...competitionsData];
     }
 
-    // Persist to local file
-    const filePath = path.join(process.cwd(), 'src/data/competitions.ts');
-    fs.writeFileSync(filePath, generateCompetitionsFileContent(updatedList), 'utf-8');
+    // Persist to local file (supported in dev/localhost, safely skipped in read-only serverless production)
+    try {
+      const filePath = path.join(process.cwd(), 'src/data/competitions.ts');
+      fs.writeFileSync(filePath, generateCompetitionsFileContent(updatedList), 'utf-8');
+    } catch (fsErr: any) {
+      console.warn('Local competitions.ts write skipped (read-only filesystem):', fsErr?.message);
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -274,8 +278,12 @@ export async function DELETE(req: Request) {
     }
 
     const filtered = [...competitionsData];
-    const filePath = path.join(process.cwd(), 'src/data/competitions.ts');
-    fs.writeFileSync(filePath, generateCompetitionsFileContent(filtered), 'utf-8');
+    try {
+      const filePath = path.join(process.cwd(), 'src/data/competitions.ts');
+      fs.writeFileSync(filePath, generateCompetitionsFileContent(filtered), 'utf-8');
+    } catch (fsErr: any) {
+      console.warn('Local competitions.ts delete write skipped (read-only filesystem):', fsErr?.message);
+    }
 
     return NextResponse.json({ success: true, count: filtered.length, supabaseNotice: sbNotice });
   } catch (error: any) {
