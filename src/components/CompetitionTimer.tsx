@@ -6,7 +6,9 @@ import { getFirebaseForms } from '@/lib/firebaseForms';
 interface CompetitionTimerProps {
   title?: string;
   eventDate?: string;
+  startDate?: string;
   dateStr?: string;
+  statusType?: 'auto' | 'upcoming' | 'ongoing' | 'past';
   rulesButtonText?: string;
   rulesLink?: string;
   submissionsButtonText?: string;
@@ -17,7 +19,9 @@ interface CompetitionTimerProps {
 export default function CompetitionTimer({ 
   title = 'Submissions',
   eventDate = 'October 25, 2026',
+  startDate,
   dateStr = 'October 25, 2026 at 12:00 AM',
+  statusType,
   rulesButtonText = 'Download Rules & Regs',
   rulesLink = '#',
   submissionsButtonText,
@@ -25,6 +29,7 @@ export default function CompetitionTimer({
   competitionSlug
 }: CompetitionTimerProps) {
   const [attachedForm, setAttachedForm] = useState<{ id: string; title: string; slug: string } | null>(null);
+  const [stage, setStage] = useState<'upcoming' | 'ongoing' | 'past'>('ongoing');
   const [timeLeft, setTimeLeft] = useState<{
     days: string;
     hours: string;
@@ -63,31 +68,31 @@ export default function CompetitionTimer({
       });
     }
 
-    const parseTargetDate = (str?: string): number => {
-      if (!str) return new Date('2026-11-05T00:00:00').getTime();
+    const parseTargetDate = (str?: string): number | null => {
+      if (!str) return null;
       try {
         const cleaned = str.replace(/\bat\b/gi, ' ').replace(/\s+/g, ' ').trim();
         const parsed = new Date(cleaned).getTime();
         if (!isNaN(parsed)) return parsed;
-      } catch {
-        // fallback
-      }
+      } catch {}
       try {
         const direct = new Date(str).getTime();
         if (!isNaN(direct)) return direct;
-      } catch {
-        // fallback
-      }
-      return new Date('2026-11-05T00:00:00').getTime();
+      } catch {}
+      return null;
     };
 
-    const targetTime = parseTargetDate(dateStr);
+    const startMs = parseTargetDate(startDate || eventDate);
+    const deadlineMs = parseTargetDate(dateStr);
 
     const updateTimer = () => {
       const now = Date.now();
-      const distance = targetTime - now;
+      const isExplicitPast = statusType === 'past';
+      const isPast = isExplicitPast || (deadlineMs !== null && now >= deadlineMs);
+      const isUpcoming = !isPast && statusType !== 'ongoing' && startMs !== null && now < startMs;
 
-      if (distance <= 0) {
+      if (isPast) {
+        setStage('past');
         setTimeLeft({
           days: '00',
           hours: '00',
@@ -95,27 +100,62 @@ export default function CompetitionTimer({
           seconds: '00',
           isExpired: true
         });
-        return;
+      } else if (isUpcoming) {
+        setStage('upcoming');
+        const distance = (startMs ?? now) - now;
+        if (distance <= 0) {
+          setStage('ongoing');
+        } else {
+          const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const s = Math.floor((distance % (1000 * 60)) / 1000);
+
+          setTimeLeft({
+            days: d < 10 ? `0${d}` : `${d}`,
+            hours: h < 10 ? `0${h}` : `${h}`,
+            minutes: m < 10 ? `0${m}` : `${m}`,
+            seconds: s < 10 ? `0${s}` : `${s}`,
+            isExpired: false
+          });
+        }
+      } else {
+        setStage('ongoing');
+        const target = deadlineMs ?? (now + 7 * 86400000);
+        const distance = target - now;
+
+        if (distance <= 0) {
+          setStage('past');
+          setTimeLeft({
+            days: '00',
+            hours: '00',
+            minutes: '00',
+            seconds: '00',
+            isExpired: true
+          });
+        } else {
+          const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const s = Math.floor((distance % (1000 * 60)) / 1000);
+
+          setTimeLeft({
+            days: d < 10 ? `0${d}` : `${d}`,
+            hours: h < 10 ? `0${h}` : `${h}`,
+            minutes: m < 10 ? `0${m}` : `${m}`,
+            seconds: s < 10 ? `0${s}` : `${s}`,
+            isExpired: false
+          });
+        }
       }
-
-      const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((distance % (1000 * 60)) / 1000);
-
-      setTimeLeft({
-        days: d < 10 ? `0${d}` : `${d}`,
-        hours: h < 10 ? `0${h}` : `${h}`,
-        minutes: m < 10 ? `0${m}` : `${m}`,
-        seconds: s < 10 ? `0${s}` : `${s}`,
-        isExpired: false
-      });
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [dateStr]);
+  }, [dateStr, startDate, eventDate, statusType, competitionSlug]);
+
+  const effectiveStart = startDate || eventDate || 'To be announced';
 
   return (
     <div className="comp-3d-card reveal-fade up delay-1 is-visible">
@@ -127,10 +167,14 @@ export default function CompetitionTimer({
           left: 0,
           right: 0,
           height: '5px',
-          background: timeLeft.isExpired 
+          background: stage === 'past' 
             ? 'linear-gradient(90deg, #475569 0%, #dc2626 50%, #475569 100%)' 
-            : 'linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #7f1d1d 100%)',
-          boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)'
+            : stage === 'upcoming'
+              ? 'linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #6d28d9 100%)'
+              : 'linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #7f1d1d 100%)',
+          boxShadow: stage === 'upcoming' 
+            ? '0 2px 8px rgba(124, 58, 237, 0.3)' 
+            : '0 2px 8px rgba(220, 38, 38, 0.3)'
         }} 
       />
 
@@ -151,17 +195,17 @@ export default function CompetitionTimer({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: timeLeft.isExpired ? '#ef4444' : '#22c55e',
-            boxShadow: timeLeft.isExpired ? '0 0 10px #ef4444' : '0 0 10px #22c55e'
+            background: stage === 'past' ? '#ef4444' : stage === 'upcoming' ? '#7c3aed' : '#22c55e',
+            boxShadow: stage === 'past' ? '0 0 10px #ef4444' : stage === 'upcoming' ? '0 0 10px #7c3aed' : '0 0 10px #22c55e'
           }} />
           <span style={{ 
             fontSize: '0.7rem', 
             fontWeight: 800, 
             letterSpacing: '0.06em', 
             textTransform: 'uppercase',
-            color: timeLeft.isExpired ? '#ef4444' : '#16a34a' 
+            color: stage === 'past' ? '#ef4444' : stage === 'upcoming' ? '#7c3aed' : '#16a34a' 
           }}>
-            {timeLeft.isExpired ? 'Closed' : 'Live'}
+            {stage === 'past' ? 'Closed' : stage === 'upcoming' ? 'Upcoming' : 'Live'}
           </span>
         </div>
       </div>
@@ -174,23 +218,25 @@ export default function CompetitionTimer({
           alignItems: 'center', 
           gap: '1rem',
           padding: '0.85rem 1.1rem',
-          background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+          background: stage === 'upcoming' 
+            ? 'linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%)' 
+            : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
           borderRadius: '16px',
-          border: '1px solid #e2e8f0',
+          border: stage === 'upcoming' ? '1px solid #ddd6fe' : '1px solid #e2e8f0',
           boxShadow: '0 2px 6px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,1)'
         }}>
           <div style={{ 
             width: '42px', 
             height: '42px', 
             borderRadius: '12px', 
-            background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', 
-            border: '1px solid #cbd5e1',
+            background: stage === 'upcoming' ? 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)' : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', 
+            border: stage === 'upcoming' ? '1px solid #c4b5fd' : '1px solid #cbd5e1',
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
             boxShadow: '0 2px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)'
           }}>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#b91c1c" strokeWidth="2.2">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke={stage === 'upcoming' ? '#7c3aed' : '#b91c1c'} strokeWidth="2.2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
@@ -198,8 +244,10 @@ export default function CompetitionTimer({
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Event Date</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{eventDate || 'October 25, 2026'}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: stage === 'upcoming' ? '#6d28d9' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {stage === 'upcoming' ? 'Launches On' : 'Event Date'}
+            </div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{effectiveStart}</div>
           </div>
         </div>
 
@@ -209,12 +257,12 @@ export default function CompetitionTimer({
           alignItems: 'center', 
           gap: '1rem',
           padding: '0.85rem 1.1rem',
-          background: timeLeft.isExpired 
+          background: stage === 'past' 
             ? 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' 
             : 'linear-gradient(180deg, #fff5f5 0%, #fef2f2 100%)',
           borderRadius: '16px',
-          border: timeLeft.isExpired ? '1px solid #cbd5e1' : '1px solid #fecdd3',
-          boxShadow: timeLeft.isExpired 
+          border: stage === 'past' ? '1px solid #cbd5e1' : '1px solid #fecdd3',
+          boxShadow: stage === 'past' 
             ? '0 2px 6px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,1)' 
             : '0 2px 6px rgba(225, 29, 72, 0.04), inset 0 1px 0 rgba(255,255,255,1)'
         }}>
@@ -222,16 +270,16 @@ export default function CompetitionTimer({
             width: '42px', 
             height: '42px', 
             borderRadius: '12px', 
-            background: timeLeft.isExpired 
+            background: stage === 'past' 
               ? 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)' 
               : 'linear-gradient(135deg, #fee2e2 0%, #fecdd3 100%)', 
-            border: timeLeft.isExpired ? '1px solid #94a3b8' : '1px solid #fca5a5',
+            border: stage === 'past' ? '1px solid #94a3b8' : '1px solid #fca5a5',
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
             boxShadow: '0 2px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)'
           }}>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke={timeLeft.isExpired ? '#475569' : '#991b1b'} strokeWidth="2.2">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke={stage === 'past' ? '#475569' : '#991b1b'} strokeWidth="2.2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
@@ -242,14 +290,14 @@ export default function CompetitionTimer({
             <div style={{ 
               fontSize: '0.72rem', 
               fontWeight: 800, 
-              color: timeLeft.isExpired ? '#64748b' : '#991b1b', 
+              color: stage === 'past' ? '#64748b' : '#991b1b', 
               textTransform: 'uppercase', 
               letterSpacing: '0.06em' 
             }}>
               Submissions Deadline
             </div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: timeLeft.isExpired ? '#475569' : '#0f172a' }}>
-              {dateStr}
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: stage === 'past' ? '#475569' : '#0f172a' }}>
+              {dateStr || 'To be announced'}
             </div>
           </div>
         </div>
@@ -260,7 +308,7 @@ export default function CompetitionTimer({
         <div style={{ 
           fontSize: '0.74rem', 
           fontWeight: 800, 
-          color: timeLeft.isExpired ? '#dc2626' : '#475569', 
+          color: stage === 'past' ? '#dc2626' : stage === 'upcoming' ? '#7c3aed' : '#475569', 
           textTransform: 'uppercase', 
           letterSpacing: '0.1em',
           marginBottom: '1rem',
@@ -272,9 +320,13 @@ export default function CompetitionTimer({
             width: '7px', 
             height: '7px', 
             borderRadius: '50%', 
-            background: timeLeft.isExpired ? '#dc2626' : '#dc2626' 
+            background: stage === 'past' ? '#dc2626' : stage === 'upcoming' ? '#7c3aed' : '#16a34a' 
           }} />
-          {timeLeft.isExpired ? 'Submissions Officially Closed' : 'Submissions Close In'}
+          {stage === 'past' 
+            ? 'Submissions Officially Closed' 
+            : stage === 'upcoming' 
+              ? 'Competition Launches In' 
+              : 'Submissions Close In'}
         </div>
 
         {/* 3D Digit Tiles (Keycaps) */}
@@ -283,7 +335,7 @@ export default function CompetitionTimer({
             <span style={{ 
               fontSize: 'clamp(1.5rem, 3.8vw, 1.9rem)', 
               fontFamily: 'var(--font-impact)', 
-              color: timeLeft.isExpired ? '#64748b' : '#0f172a', 
+              color: stage === 'past' ? '#64748b' : stage === 'upcoming' ? '#7c3aed' : '#0f172a', 
               lineHeight: '1', 
               fontWeight: 900 
             }}>
@@ -298,7 +350,7 @@ export default function CompetitionTimer({
             <span style={{ 
               fontSize: 'clamp(1.5rem, 3.8vw, 1.9rem)', 
               fontFamily: 'var(--font-impact)', 
-              color: timeLeft.isExpired ? '#64748b' : '#0f172a', 
+              color: stage === 'past' ? '#64748b' : stage === 'upcoming' ? '#7c3aed' : '#0f172a', 
               lineHeight: '1', 
               fontWeight: 900 
             }}>
@@ -313,7 +365,7 @@ export default function CompetitionTimer({
             <span style={{ 
               fontSize: 'clamp(1.5rem, 3.8vw, 1.9rem)', 
               fontFamily: 'var(--font-impact)', 
-              color: timeLeft.isExpired ? '#64748b' : '#0f172a', 
+              color: stage === 'past' ? '#64748b' : stage === 'upcoming' ? '#7c3aed' : '#0f172a', 
               lineHeight: '1', 
               fontWeight: 900 
             }}>
@@ -328,7 +380,7 @@ export default function CompetitionTimer({
             <span style={{ 
               fontSize: 'clamp(1.5rem, 3.8vw, 1.9rem)', 
               fontFamily: 'var(--font-impact)', 
-              color: timeLeft.isExpired ? '#64748b' : '#991b1b', 
+              color: stage === 'past' ? '#64748b' : stage === 'upcoming' ? '#7c3aed' : '#991b1b', 
               lineHeight: '1', 
               fontWeight: 900 
             }}>
@@ -336,7 +388,7 @@ export default function CompetitionTimer({
             </span>
             <span style={{ 
               fontSize: '0.65rem', 
-              color: timeLeft.isExpired ? '#64748b' : '#991b1b', 
+              color: stage === 'past' ? '#64748b' : stage === 'upcoming' ? '#7c3aed' : '#991b1b', 
               fontWeight: 800, 
               textTransform: 'uppercase', 
               marginTop: '0.4rem', 
@@ -347,8 +399,33 @@ export default function CompetitionTimer({
           </div>
         </div>
 
-        {/* Beautiful English Closed Notice Banner inside Card */}
-        {timeLeft.isExpired && (
+        {/* Informative Stage Notice Banner */}
+        {stage === 'upcoming' && (
+          <div style={{
+            marginTop: '1.15rem',
+            padding: '0.85rem 1rem',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+            border: '1.5px solid #ddd6fe',
+            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.08)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.65rem',
+            textAlign: 'left'
+          }}>
+            <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>⏳</span>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#6d28d9', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                Upcoming Competition
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#5b21b6', marginTop: '0.2rem', lineHeight: 1.4, fontWeight: 500 }}>
+                This competition is scheduled to start on <strong>{effectiveStart}</strong>. Official Rules and Registration / Submission buttons are locked and will automatically unlock on the launch date.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {stage === 'past' && (
           <div style={{
             marginTop: '1.15rem',
             padding: '0.85rem 1rem',
@@ -376,26 +453,58 @@ export default function CompetitionTimer({
 
       {/* Action Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', width: '100%' }}>
-        {/* Secondary: Download Rules & Regs (Always Accessible, Never Expired) */}
-        <a 
-          href={rulesLink} 
-          target={rulesLink && rulesLink !== '#' && !rulesLink.startsWith('/') ? '_blank' : undefined}
-          rel="noopener noreferrer"
-          className="btn-3d-secondary"
-          onClick={(e) => {
-            if (!rulesLink || rulesLink === '#') {
-              e.preventDefault();
-              alert('Rules and Regulations document will be available for download shortly.');
-            }
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          {rulesButtonText || 'Download Rules & Regs'}
-        </a>
+        {/* Rules & Regs Button:
+            Locked when competition is Upcoming! */}
+        {stage === 'upcoming' ? (
+          <div 
+            onClick={() => {
+              alert(`🔒 RULES & REGULATIONS LOCKED\n\nThis competition is scheduled to start on ${effectiveStart}.\nThe official Rules & Regulations document will unlock automatically on that date.`);
+            }}
+            className="btn-3d-secondary"
+            style={{
+              cursor: 'not-allowed',
+              background: '#f8fafc',
+              color: '#94a3b8',
+              borderColor: '#cbd5e1',
+              boxShadow: 'none',
+              opacity: 0.85,
+              userSelect: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+            role="button"
+            aria-disabled="true"
+            title={`Rules document locked until ${effectiveStart}`}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>🔒 Rules Locked (Opens {effectiveStart})</span>
+          </div>
+        ) : (
+          <a 
+            href={rulesLink} 
+            target={rulesLink && rulesLink !== '#' && !rulesLink.startsWith('/') ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            className="btn-3d-secondary"
+            onClick={(e) => {
+              if (!rulesLink || rulesLink === '#') {
+                e.preventDefault();
+                alert('Rules and Regulations document will be available for download shortly.');
+              }
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {rulesButtonText || 'Download Rules & Regs'}
+          </a>
+        )}
 
         {/* Section divider with 3D lines */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', margin: '0.4rem 0 0.1rem' }}>
@@ -413,8 +522,10 @@ export default function CompetitionTimer({
         </div>
 
         {/* Submissions Button: 
-            Visible but strictly disabled/locked if expired, with English alert on click */}
-        {attachedForm && !timeLeft.isExpired && (
+            1) Locked if Upcoming (with alert & clear status)
+            2) Closed if Expired/Past
+            3) Active if Ongoing */}
+        {attachedForm && stage === 'ongoing' && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -435,7 +546,41 @@ export default function CompetitionTimer({
           </div>
         )}
 
-        {timeLeft.isExpired ? (
+        {stage === 'upcoming' ? (
+          <div 
+            onClick={() => {
+              alert(`🔒 SUBMISSIONS LOCKED\n\nThis competition has not launched yet.\nSubmissions and registrations will officially open on ${effectiveStart}.`);
+            }}
+            style={{
+              width: '100%',
+              padding: '0.95rem 1.25rem',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+              border: '1.5px solid #ddd6fe',
+              boxShadow: '0 2px 6px rgba(124, 58, 237, 0.12)',
+              color: '#6d28d9',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.55rem',
+              cursor: 'not-allowed',
+              opacity: 0.95,
+              userSelect: 'none',
+              transition: 'all 0.2s'
+            }}
+            role="button"
+            aria-disabled="true"
+            title={`Submissions locked until ${effectiveStart}`}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>Submissions Locked &bull; Opens on {effectiveStart}</span>
+          </div>
+        ) : stage === 'past' ? (
           <div 
             onClick={() => {
               alert(`⚠️ SUBMISSIONS CLOSED\n\nThe deadline for this competition ended on ${dateStr}.\nThe submission portal is no longer accepting submissions or registrations.`);

@@ -1,8 +1,11 @@
+export type TextAlign = 'left' | 'center' | 'right' | 'justify';
+
 export interface TextStyle {
   text: string;
   font?: string;
   color?: string;
   bold?: boolean;
+  align?: TextAlign;
 }
 
 export const GOOGLE_FONTS_50 = [
@@ -84,7 +87,7 @@ export const PRESET_COLORS = [
  * Parses a stored value into its raw text and styling attributes.
  */
 export function parseStyledText(value: string | undefined | null): TextStyle {
-  if (!value) return { text: '', font: '', color: '', bold: false };
+  if (!value) return { text: '', font: '', color: '', bold: false, align: undefined };
 
   const str = String(value).trim();
   // Match span format: <span style="..." data-styled="true">text</span>
@@ -96,6 +99,7 @@ export function parseStyledText(value: string | undefined | null): TextStyle {
     let font = '';
     let color = '';
     let bold = false;
+    let align: TextAlign | undefined = undefined;
 
     const fontMatch = styleStr.match(/font-family:\s*['"]?([^'";,]+)['"]?/i);
     if (fontMatch) font = fontMatch[1].trim();
@@ -109,10 +113,15 @@ export function parseStyledText(value: string | undefined | null): TextStyle {
       bold = w === 'bold' || w === '700' || w === '800' || w === '900';
     }
 
-    return { text, font, color, bold };
+    const alignMatch = styleStr.match(/text-align:\s*(left|center|right|justify)/i);
+    if (alignMatch) {
+      align = alignMatch[1].toLowerCase() as TextAlign;
+    }
+
+    return { text, font, color, bold, align };
   }
 
-  return { text: str, font: '', color: '', bold: false };
+  return { text: str, font: '', color: '', bold: false, align: undefined };
 }
 
 /**
@@ -120,7 +129,7 @@ export function parseStyledText(value: string | undefined | null): TextStyle {
  */
 export function formatStyledText(
   text: string,
-  style: { font?: string; color?: string; bold?: boolean }
+  style: { font?: string; color?: string; bold?: boolean; align?: TextAlign }
 ): string {
   const cleanText = (text || '').trim();
   if (!cleanText) return '';
@@ -128,8 +137,9 @@ export function formatStyledText(
   const hasFont = style.font && style.font !== 'inherit' && style.font !== '';
   const hasColor = style.color && style.color !== 'inherit' && style.color !== '';
   const hasBold = !!style.bold;
+  const hasAlign = !!style.align;
 
-  if (!hasFont && !hasColor && !hasBold) {
+  if (!hasFont && !hasColor && !hasBold && !hasAlign) {
     return cleanText;
   }
 
@@ -137,6 +147,11 @@ export function formatStyledText(
   if (hasFont) styles.push(`font-family: '${style.font}', sans-serif`);
   if (hasColor) styles.push(`color: ${style.color}`);
   if (hasBold) styles.push(`font-weight: bold`);
+  if (hasAlign) {
+    styles.push(`text-align: ${style.align}`);
+    styles.push(`display: block`);
+    styles.push(`width: 100%`);
+  }
 
   return `<span style="${styles.join('; ')}" data-styled="true">${cleanText}</span>`;
 }

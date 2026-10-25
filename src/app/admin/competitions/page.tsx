@@ -22,10 +22,10 @@ function getCompStatus(comp: Competition, now = Date.now()): { label: string; co
   const deadlineMs = parseDateToMs(comp.deadline);
   const startMs = parseDateToMs(comp.startDate || comp.eventDate || comp.date);
 
-  if (deadlineMs !== null && now >= deadlineMs) {
+  if (comp.statusType === 'past' || (deadlineMs !== null && now >= deadlineMs)) {
     return { label: 'Past', color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1', icon: '🏁' };
   }
-  if (startMs !== null && now < startMs) {
+  if (comp.statusType !== 'ongoing' && startMs !== null && now < startMs) {
     return { label: 'Upcoming', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe', icon: '⏳' };
   }
   return { label: 'Ongoing', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', icon: '🟢' };
@@ -152,6 +152,46 @@ export default function CompetitionsAdmin() {
     router.push(`/admin/competitions/${newSlug}`);
   };
 
+  const handleAddNewPast = async () => {
+    const newSlug = `competition-${Date.now()}`;
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const pastFormatted = `${months[yesterday.getMonth()]} ${yesterday.getDate()}, ${yesterday.getFullYear()} at 11:59 PM`;
+
+    const newComp: Competition = {
+      slug: newSlug,
+      title: 'Past Competition 2025',
+      date: pastFormatted,
+      eventDate: pastFormatted,
+      startDate: pastFormatted,
+      deadline: pastFormatted,
+      statusType: 'past',
+      shortDesc: 'Summary of past competition, results and historical legacy.',
+      fullDesc: ['Overview of the completed competition guidelines and past records.'],
+      image: '/comp1.jpg',
+      rulesButtonText: 'Download Rules & Regs',
+      rulesButtonLink: '#',
+      submissionsButtonText: 'Submissions Closed',
+      submissionsButtonLink: '#',
+      contentHtml: '<h1>Past Competition Guidelines & Results</h1><p>Record past competition details, guidelines, or results here.</p>'
+    };
+    
+    const newData = [newComp, ...competitions];
+    setCompetitions(newData);
+
+    try {
+      await fetch('/api/competitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newComp)
+      });
+    } catch (e) {
+      console.error('Add past error:', e);
+    }
+
+    router.push(`/admin/competitions/${newSlug}`);
+  };
+
   return (
     <div style={{ paddingTop: '2rem', paddingBottom: '5rem' }}>
       <header className="achievements-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -159,7 +199,7 @@ export default function CompetitionsAdmin() {
           <h1 className="admin-title">Manage Competitions</h1>
           <p className="admin-subtitle">Add, edit, or remove competitions shown on the public website.</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
             onClick={handleSyncDatabase}
             disabled={isSyncing}
@@ -172,6 +212,18 @@ export default function CompetitionsAdmin() {
             title="Sync with Supabase Database"
           >
             <span>{isSyncing ? '⏳' : '🔄'}</span> {isSyncing ? 'Syncing...' : 'Sync to Supabase'}
+          </button>
+          <button 
+            onClick={handleAddNewPast} 
+            style={{ 
+              background: '#334155', color: '#fff', border: 'none', padding: '0.8rem 1.4rem', 
+              borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              boxShadow: '0 4px 15px rgba(51, 65, 85, 0.25)'
+            }}
+            title="Add a past / archived competition"
+          >
+            <span>🏁</span> Add Past Competition
           </button>
           <button 
             onClick={handleAddNew} 

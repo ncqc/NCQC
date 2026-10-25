@@ -23,7 +23,8 @@ export default function RenderStyledText({
     ...style,
     ...(parsed.font ? { fontFamily: `'${parsed.font}', sans-serif` } : {}),
     ...(parsed.color ? { color: parsed.color } : {}),
-    ...(parsed.bold ? { fontWeight: 'bold' } : {})
+    ...(parsed.bold ? { fontWeight: 'bold' } : {}),
+    ...(parsed.align ? { textAlign: parsed.align, display: 'block', width: '100%' } : {})
   };
 
   const Tag = defaultTag;

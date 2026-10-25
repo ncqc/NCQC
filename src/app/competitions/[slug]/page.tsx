@@ -82,6 +82,9 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
                 <img 
                   src={competition.image} 
                   alt={stripStyledText(competition.title)} 
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                   style={{ 
                     width: '100%', 
                     height: 'auto', 
@@ -99,7 +102,9 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
               <CompetitionTimer 
                 title={stripStyledText(competition.title)}
                 eventDate={competition.eventDate || competition.date}
+                startDate={competition.startDate || competition.eventDate || competition.date}
                 dateStr={competition.deadline || competition.date}
+                statusType={competition.statusType}
                 rulesButtonText={competition.rulesButtonText}
                 rulesLink={competition.rulesButtonLink || '#'}
                 submissionsButtonText={competition.submissionsButtonText}

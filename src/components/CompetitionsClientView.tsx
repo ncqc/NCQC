@@ -49,6 +49,18 @@ export default function CompetitionsClientView({ initialCompetitions }: Competit
     return () => clearInterval(interval);
   }, []);
 
+  // Preload competition images into browser cache immediately for instant tab switching
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Array.isArray(competitions)) {
+      competitions.forEach(c => {
+        if (c.image) {
+          const img = new window.Image();
+          img.src = c.image;
+        }
+      });
+    }
+  }, [competitions]);
+
   // Categorize competitions dynamically based on real-time clock
   const { upcomingList, ongoingList, pastList } = useMemo(() => {
     const upcoming: Competition[] = [];
@@ -59,12 +71,13 @@ export default function CompetitionsClientView({ initialCompetitions }: Competit
       const deadlineMs = parseDateToMs(comp.deadline);
       const startMs = parseDateToMs(comp.startDate || comp.eventDate || comp.date);
 
-      // 1. Deadline passed -> Past
-      if (deadlineMs !== null && now >= deadlineMs) {
+      // 1. Deadline passed or explicitly marked as past -> Past
+      const isExplicitPast = (comp as any).statusType === 'past';
+      if (isExplicitPast || (deadlineMs !== null && now >= deadlineMs)) {
         past.push(comp);
       }
       // 2. Start date in the future -> Upcoming
-      else if (startMs !== null && now < startMs) {
+      else if ((comp as any).statusType !== 'ongoing' && startMs !== null && now < startMs) {
         upcoming.push(comp);
       }
       // 3. Start date has arrived, deadline in future (or no deadline) -> Ongoing
@@ -323,7 +336,15 @@ export default function CompetitionsClientView({ initialCompetitions }: Competit
                 </div>
 
                 <div className="comp-img-wrapper" style={{ height: '380px' }}>
-                  <img src={competition.image || '/comp1.jpg'} alt={stripStyledText(competition.title)} className="comp-img" onError={(e) => (e.currentTarget.src = '/comp1.jpg')} />
+                  <img 
+                    src={competition.image || '/comp1.jpg'} 
+                    alt={stripStyledText(competition.title)} 
+                    className="comp-img" 
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                    onError={(e) => (e.currentTarget.src = '/comp1.jpg')} 
+                  />
                 </div>
 
                 <div className="comp-info" style={{ padding: '1.6rem 1.4rem 1.8rem 1.4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', flex: 1 }}>
@@ -427,12 +448,12 @@ export default function CompetitionsClientView({ initialCompetitions }: Competit
 
                   {/* Short Description */}
                   {competition.shortDesc && (
-                    <p style={{
+                    <div style={{
                       fontSize: '0.88rem',
                       lineHeight: 1.5,
                       color: '#64748b',
                       margin: '0.25rem 0 0.5rem 0',
-                      textAlign: 'center',
+                      width: '100%',
                       flex: 1,
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
@@ -440,7 +461,7 @@ export default function CompetitionsClientView({ initialCompetitions }: Competit
                       overflow: 'hidden'
                     }}>
                       <RenderStyledText text={competition.shortDesc} />
-                    </p>
+                    </div>
                   )}
 
                   <Link 

@@ -513,8 +513,9 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
             const startMs = parseDateToMs(competition.startDate || competition.eventDate || competition.date);
             const deadlineMs = parseDateToMs(competition.deadline);
             const now = Date.now();
-            const isPast = deadlineMs !== null && now >= deadlineMs;
-            const isUpcoming = !isPast && startMs !== null && now < startMs;
+            const isExplicitPast = (competition as any).statusType === 'past';
+            const isPast = isExplicitPast || (deadlineMs !== null && now >= deadlineMs);
+            const isUpcoming = !isPast && (competition as any).statusType !== 'ongoing' && startMs !== null && now < startMs;
             const isOngoing = !isPast && !isUpcoming;
 
             return (
@@ -538,7 +539,7 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                     padding: '0.2rem 0.65rem',
                     borderRadius: '100px',
                     background: isPast ? '#f1f5f9' : (isUpcoming ? '#f5f3ff' : '#ecfdf5'),
-                    color: isPast ? '#64748b' : (isUpcoming ? '#7c3aed' : '#059669'),
+                    color: isPast ? '#475569' : (isUpcoming ? '#7c3aed' : '#059669'),
                     border: `1px solid ${isPast ? '#cbd5e1' : (isUpcoming ? '#ddd6fe' : '#a7f3d0')}`
                   }}>
                     {isPast ? '🏁 Past Competition' : (isUpcoming ? '⏳ Upcoming' : '🟢 Ongoing Live')}
@@ -546,33 +547,49 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                 </div>
 
                 <p style={{ margin: '0 0 1rem 0', fontSize: '0.74rem', color: '#64748b', lineHeight: 1.45 }}>
-                  Choose whether this competition is <strong>Ongoing</strong> (active now) or <strong>Upcoming</strong> (scheduled to launch at a future date & time).
+                  Select the stage for this competition: <strong>Upcoming</strong> (scheduled launch), <strong>Ongoing</strong> (active live now), or <strong>Past</strong> (concluded / archive).
                 </p>
 
-                {/* Switcher Buttons */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+                {/* 3-Way Switcher Buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginBottom: '1rem' }}>
                   <button
                     type="button"
                     onClick={() => {
                       const curStartMs = parseDateToMs(competition.startDate || competition.eventDate);
+                      let formattedStart = competition.startDate || competition.eventDate;
                       if (!curStartMs || curStartMs <= Date.now()) {
                         const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
                         const y = future.getFullYear();
                         const m = String(future.getMonth() + 1).padStart(2, '0');
                         const d = String(future.getDate()).padStart(2, '0');
-                        const formatted = formatFromDateAndTime(`${y}-${m}-${d}`, '10:00');
-                        updateMultipleFields({ startDate: formatted, eventDate: formatted, date: formatted });
+                        formattedStart = formatFromDateAndTime(`${y}-${m}-${d}`, '10:00');
                       }
+                      const curDeadlineMs = parseDateToMs(competition.deadline);
+                      let formattedDeadline = competition.deadline;
+                      if (!curDeadlineMs || curDeadlineMs <= Date.now()) {
+                        const dFuture = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+                        const dy = dFuture.getFullYear();
+                        const dm = String(dFuture.getMonth() + 1).padStart(2, '0');
+                        const dd = String(dFuture.getDate()).padStart(2, '0');
+                        formattedDeadline = formatFromDateAndTime(`${dy}-${dm}-${dd}`, '23:59');
+                      }
+                      updateMultipleFields({ 
+                        statusType: 'upcoming',
+                        startDate: formattedStart, 
+                        eventDate: formattedStart, 
+                        date: formattedStart,
+                        deadline: formattedDeadline
+                      });
                       setPickerTarget('startDate');
                     }}
                     style={{
-                      padding: '0.75rem 0.5rem',
+                      padding: '0.75rem 0.35rem',
                       borderRadius: '12px',
                       border: isUpcoming ? '2px solid #7c3aed' : '1px solid #cbd5e1',
                       background: isUpcoming ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)' : '#ffffff',
                       color: isUpcoming ? '#ffffff' : '#334155',
                       fontWeight: 800,
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       cursor: 'pointer',
                       boxShadow: isUpcoming ? '0 4px 14px rgba(124, 58, 237, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
                       display: 'flex',
@@ -582,9 +599,9 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    <span style={{ fontSize: '1.25rem' }}>⏳</span>
+                    <span style={{ fontSize: '1.2rem' }}>⏳</span>
                     <span>Upcoming</span>
-                    <span style={{ fontSize: '0.64rem', opacity: isUpcoming ? 0.95 : 0.65 }}>Scheduled Launch</span>
+                    <span style={{ fontSize: '0.62rem', opacity: isUpcoming ? 0.95 : 0.65 }}>Scheduled</span>
                   </button>
 
                   <button
@@ -596,17 +613,34 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                       const d = String(now.getDate()).padStart(2, '0');
                       const h = String(now.getHours()).padStart(2, '0');
                       const min = String(now.getMinutes()).padStart(2, '0');
-                      const formatted = formatFromDateAndTime(`${y}-${m}-${d}`, `${h}:${min}`);
-                      updateMultipleFields({ startDate: formatted, eventDate: formatted, date: formatted });
+                      const formattedStart = formatFromDateAndTime(`${y}-${m}-${d}`, `${h}:${min}`);
+                      
+                      const curDeadlineMs = parseDateToMs(competition.deadline);
+                      let formattedDeadline = competition.deadline;
+                      if (!curDeadlineMs || curDeadlineMs <= Date.now()) {
+                        const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        const fy = future.getFullYear();
+                        const fm = String(future.getMonth() + 1).padStart(2, '0');
+                        const fd = String(future.getDate()).padStart(2, '0');
+                        formattedDeadline = formatFromDateAndTime(`${fy}-${fm}-${fd}`, '23:59');
+                      }
+
+                      updateMultipleFields({ 
+                        statusType: 'ongoing',
+                        startDate: formattedStart, 
+                        eventDate: formattedStart, 
+                        date: formattedStart,
+                        deadline: formattedDeadline
+                      });
                     }}
                     style={{
-                      padding: '0.75rem 0.5rem',
+                      padding: '0.75rem 0.35rem',
                       borderRadius: '12px',
                       border: isOngoing ? '2px solid #059669' : '1px solid #cbd5e1',
                       background: isOngoing ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#ffffff',
                       color: isOngoing ? '#ffffff' : '#334155',
                       fontWeight: 800,
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       cursor: 'pointer',
                       boxShadow: isOngoing ? '0 4px 14px rgba(5, 150, 105, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
                       display: 'flex',
@@ -616,29 +650,73 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    <span style={{ fontSize: '1.25rem' }}>🟢</span>
+                    <span style={{ fontSize: '1.2rem' }}>🟢</span>
                     <span>Ongoing</span>
-                    <span style={{ fontSize: '0.64rem', opacity: isOngoing ? 0.95 : 0.65 }}>Active Now</span>
+                    <span style={{ fontSize: '0.62rem', opacity: isOngoing ? 0.95 : 0.65 }}>Active Now</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curDeadlineMs = parseDateToMs(competition.deadline);
+                      let formattedPast = competition.deadline;
+                      if (!curDeadlineMs || curDeadlineMs > Date.now()) {
+                        const past = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                        const py = past.getFullYear();
+                        const pm = String(past.getMonth() + 1).padStart(2, '0');
+                        const pd = String(past.getDate()).padStart(2, '0');
+                        formattedPast = formatFromDateAndTime(`${py}-${pm}-${pd}`, '23:59');
+                      }
+
+                      updateMultipleFields({ 
+                        statusType: 'past',
+                        deadline: formattedPast
+                      });
+                    }}
+                    style={{
+                      padding: '0.75rem 0.35rem',
+                      borderRadius: '12px',
+                      border: isPast ? '2px solid #475569' : '1px solid #cbd5e1',
+                      background: isPast ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : '#ffffff',
+                      color: isPast ? '#ffffff' : '#334155',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      boxShadow: isPast ? '0 4px 14px rgba(71, 85, 105, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.2rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.2rem' }}>🏁</span>
+                    <span>Past</span>
+                    <span style={{ fontSize: '0.62rem', opacity: isPast ? 0.95 : 0.65 }}>Concluded</span>
                   </button>
                 </div>
 
                 {/* Explanation text */}
                 <div style={{
-                  background: isUpcoming ? '#f5f3ff' : '#ecfdf5',
-                  border: `1px solid ${isUpcoming ? '#ddd6fe' : '#a7f3d0'}`,
+                  background: isPast ? '#f1f5f9' : (isUpcoming ? '#f5f3ff' : '#ecfdf5'),
+                  border: `1px solid ${isPast ? '#cbd5e1' : (isUpcoming ? '#ddd6fe' : '#a7f3d0')}`,
                   borderRadius: '10px',
                   padding: '0.75rem',
                   fontSize: '0.75rem',
                   lineHeight: 1.45,
-                  color: isUpcoming ? '#5b21b6' : '#065f46'
+                  color: isPast ? '#334155' : (isUpcoming ? '#5b21b6' : '#065f46')
                 }}>
-                  {isUpcoming ? (
+                  {isPast ? (
                     <div>
-                      <strong>🤖 Auto-Switch Logic:</strong> Stays in the <strong>Upcoming</strong> tab until the Start Date & Time arrives. The moment the clock strikes that time, it automatically transitions to <strong>Ongoing</strong>!
+                      <strong>🏁 Past / Concluded Competition:</strong> This competition is archived under <strong>Past Competitions</strong>. Submissions are closed and countdown displays concluded.
+                    </div>
+                  ) : isUpcoming ? (
+                    <div>
+                      <strong>⏳ Upcoming Launch:</strong> Stays in the <strong>Upcoming</strong> tab until the Start Date arrives. Rules and Submissions buttons stay locked until that date. The moment that date arrives, it automatically unlocks and transitions to <strong>Ongoing</strong>!
                     </div>
                   ) : (
                     <div>
-                      <strong>🤖 Auto-Switch Logic:</strong> Live right now under <strong>Ongoing</strong>. The moment the countdown timer hits 0 at the Deadline, it automatically moves to <strong>Past Competitions</strong>!
+                      <strong>🟢 Ongoing Live:</strong> Active right now under <strong>Ongoing</strong>. The moment the countdown timer hits 0 at the Deadline, it automatically moves to <strong>Past Competitions</strong>!
                     </div>
                   )}
                 </div>

@@ -22,13 +22,13 @@ interface StatItem {
 const STATS_DATA: StatItem[] = [
   {
     id: 'legacy',
-    badge: 'SINCE 1983',
+    badge: 'SINCE 1982',
     icon: '🏛️',
-    targetNum: 43,
+    targetNum: 44,
     suffix: '',
     label: 'Years of Legacy',
     desc: 'Four decades of intellectual heritage, shaping champion minds.',
-    metric: 'Est. 1983 • Landmark Heritage',
+    metric: 'Est. 1982 • Landmark Heritage',
     gradientText: 'linear-gradient(135deg, #ff2a6d 0%, #ff5e3a 50%, #ffa500 100%)',
     glowColor: 'rgba(255, 59, 107, 0.28)',
     cardBorder: 'rgba(255, 94, 58, 0.35)',

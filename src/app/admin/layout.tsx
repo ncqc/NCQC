@@ -69,6 +69,7 @@ function AdminProtectedShell({ children }: { children: React.ReactNode }) {
     { name: 'Competitions', path: '/admin/competitions', icon: '⚔️' },
     { name: 'Competition Forms', path: '/admin/forms', icon: '📝' },
     { name: 'Projects', path: '/admin/projects', icon: '🚀' },
+    { name: 'Our Team', path: '/admin/team', icon: '👥' },
     { name: 'Gallery', path: '/admin/gallery', icon: '📸' },
   ];
 

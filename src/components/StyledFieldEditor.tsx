@@ -5,7 +5,8 @@ import {
   formatStyledText,
   GOOGLE_FONTS_50,
   PRESET_COLORS,
-  TextStyle
+  TextStyle,
+  TextAlign
 } from '@/utils/styledText';
 
 interface StyledFieldEditorProps {
@@ -33,6 +34,7 @@ export default function StyledFieldEditor({
   const [font, setFont] = useState(parsed.font || '');
   const [color, setColor] = useState(parsed.color || '');
   const [bold, setBold] = useState(!!parsed.bold);
+  const [align, setAlign] = useState<TextAlign | undefined>(parsed.align);
 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -44,6 +46,7 @@ export default function StyledFieldEditor({
     setFont(p.font || '');
     setColor(p.color || '');
     setBold(!!p.bold);
+    setAlign(p.align);
   }, [value]);
 
   // Close color picker on outside click
@@ -61,40 +64,54 @@ export default function StyledFieldEditor({
     };
   }, [showColorPicker]);
 
-  const updateAndEmit = (newText: string, newFont: string, newColor: string, newBold: boolean) => {
+  const updateAndEmit = (
+    newText: string,
+    newFont: string,
+    newColor: string,
+    newBold: boolean,
+    newAlign?: TextAlign
+  ) => {
     setText(newText);
     setFont(newFont);
     setColor(newColor);
     setBold(newBold);
+    setAlign(newAlign);
     const formatted = formatStyledText(newText, {
       font: newFont,
       color: newColor,
-      bold: newBold
+      bold: newBold,
+      align: newAlign
     });
     onChange(formatted);
   };
 
   const handleTextChange = (val: string) => {
-    updateAndEmit(val, font, color, bold);
+    updateAndEmit(val, font, color, bold, align);
   };
 
   const toggleBold = () => {
-    updateAndEmit(text, font, color, !bold);
+    updateAndEmit(text, font, color, !bold, align);
   };
 
   const handleFontChange = (newFont: string) => {
-    updateAndEmit(text, newFont, color, bold);
+    updateAndEmit(text, newFont, color, bold, align);
   };
 
   const handleColorChange = (newColor: string) => {
-    updateAndEmit(text, font, newColor, bold);
+    updateAndEmit(text, font, newColor, bold, align);
+  };
+
+  const handleAlignChange = (newAlign: TextAlign) => {
+    // If clicking same alignment, toggle it off or keep it
+    const nextAlign = align === newAlign ? undefined : newAlign;
+    updateAndEmit(text, font, color, bold, nextAlign);
   };
 
   const resetFormatting = () => {
-    updateAndEmit(text, '', '', false);
+    updateAndEmit(text, '', '', false, undefined);
   };
 
-  const hasFormatting = !!(font || color || bold);
+  const hasFormatting = !!(font || color || bold || align);
 
   return (
     <div style={{ marginBottom: '1.4rem' }}>
@@ -116,7 +133,7 @@ export default function StyledFieldEditor({
               cursor: 'pointer',
               padding: '0 0.2rem'
             }}
-            title="Clear font, color & bold formatting"
+            title="Clear font, color, bold & alignment formatting"
           >
             ↺ Reset Style
           </button>
@@ -194,7 +211,7 @@ export default function StyledFieldEditor({
                 display: 'inline-block'
               }}
             />
-            <span>{color ? 'Color' : 'Color'}</span>
+            <span>Color</span>
             <span style={{ fontSize: '0.55rem', color: '#64748b' }}>▼</span>
           </button>
 
@@ -331,6 +348,125 @@ export default function StyledFieldEditor({
             </optgroup>
           </select>
         </div>
+
+        {/* 4. Text Alignment Segmented Buttons */}
+        <div 
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            background: '#ffffff', 
+            border: '1px solid #cbd5e1', 
+            borderRadius: '5px', 
+            padding: '1px', 
+            gap: '1px' 
+          }}
+          title="Text Alignment (පෙළගැස්ම)"
+        >
+          {/* Left Align */}
+          <button
+            type="button"
+            onClick={() => handleAlignChange('left')}
+            style={{
+              background: align === 'left' ? '#0f172a' : 'transparent',
+              color: align === 'left' ? '#ffffff' : '#475569',
+              border: 'none',
+              borderRadius: '4px',
+              width: '24px',
+              height: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+            title="Align Left (වම් පෙළගැස්ම)"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="13" y2="12" />
+              <line x1="3" y1="18" x2="18" y2="18" />
+            </svg>
+          </button>
+
+          {/* Center Align */}
+          <button
+            type="button"
+            onClick={() => handleAlignChange('center')}
+            style={{
+              background: align === 'center' ? '#0f172a' : 'transparent',
+              color: align === 'center' ? '#ffffff' : '#475569',
+              border: 'none',
+              borderRadius: '4px',
+              width: '24px',
+              height: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+            title="Align Center (මැද පෙළගැස්ම)"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="6" y1="12" x2="18" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+
+          {/* Right Align */}
+          <button
+            type="button"
+            onClick={() => handleAlignChange('right')}
+            style={{
+              background: align === 'right' ? '#0f172a' : 'transparent',
+              color: align === 'right' ? '#ffffff' : '#475569',
+              border: 'none',
+              borderRadius: '4px',
+              width: '24px',
+              height: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+            title="Align Right (දකුණු පෙළගැස්ම)"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="11" y1="12" x2="21" y2="12" />
+              <line x1="6" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
+          {/* Justify Align */}
+          <button
+            type="button"
+            onClick={() => handleAlignChange('justify')}
+            style={{
+              background: align === 'justify' ? '#0f172a' : 'transparent',
+              color: align === 'justify' ? '#ffffff' : '#475569',
+              border: 'none',
+              borderRadius: '4px',
+              width: '24px',
+              height: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+            title="Justify (දෙපසම සමබර පෙළගැස්ම)"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="11" x2="21" y2="11" />
+              <line x1="3" y1="16" x2="21" y2="16" />
+              <line x1="3" y1="21" x2="21" y2="21" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Styled Input or Textarea Box (Direct live preview while typing) */}
@@ -352,6 +488,7 @@ export default function StyledFieldEditor({
             fontFamily: font ? `'${font}', sans-serif` : 'inherit',
             color: color || '#0f172a',
             fontWeight: bold ? 'bold' : 'normal',
+            textAlign: align || 'left',
             transition: 'border-color 0.15s, box-shadow 0.15s',
             outline: 'none',
             background: '#ffffff'
@@ -373,6 +510,7 @@ export default function StyledFieldEditor({
             fontFamily: font ? `'${font}', sans-serif` : 'inherit',
             color: color || '#0f172a',
             fontWeight: bold ? 'bold' : 'normal',
+            textAlign: align || 'left',
             transition: 'border-color 0.15s, box-shadow 0.15s',
             outline: 'none',
             background: '#ffffff'
