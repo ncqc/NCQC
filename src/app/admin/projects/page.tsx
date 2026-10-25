@@ -82,8 +82,24 @@ export default function AdminProjects() {
 
   return (
     <div style={{ padding: '2rem', background: '#f3f4f6', minHeight: '100vh' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Manage Projects</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.35rem 0' }}>Manage Projects</h1>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <span>Choose up to 3 featured projects for the Home Page:</span>
+            <span style={{ 
+              background: projects.filter(p => p.isStarred).length >= 3 ? '#fee2e2' : '#fef3c7', 
+              color: projects.filter(p => p.isStarred).length >= 3 ? '#b91c1c' : '#b45309', 
+              fontWeight: 800, 
+              padding: '0.2rem 0.65rem', 
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              border: projects.filter(p => p.isStarred).length >= 3 ? '1px solid #fca5a5' : '1px solid #fde68a'
+            }}>
+              ⭐ {projects.filter(p => p.isStarred).length} / 3 Featured
+            </span>
+          </p>
+        </div>
         <button 
           onClick={handleCreateNew}
           style={{ background: '#dc2626', color: '#fff', padding: '0.8rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
@@ -110,7 +126,15 @@ export default function AdminProjects() {
                 <button 
                   onClick={async () => {
                     try {
-                      const newStatus = !proj.isStarred;
+                      const isCurrentlyStarred = !!proj.isStarred;
+                      const newStatus = !isCurrentlyStarred;
+                      if (newStatus) {
+                        const currentStarredCount = projects.filter(p => p.isStarred).length;
+                        if (currentStarredCount >= 3) {
+                          alert('⚠️ Maximum 3 projects can be featured on the Home Page. Please unstar an existing project first.');
+                          return;
+                        }
+                      }
                       const res = await fetch('/api/projects', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -120,12 +144,12 @@ export default function AdminProjects() {
                       if (!data.success) throw new Error(data.error || 'Failed');
                       setProjects(projects.map(p => p.slug === proj.slug ? { ...p, isStarred: newStatus } : p));
                       router.refresh();
-                    } catch (err) {
-                      alert('Failed to update star status');
+                    } catch (err: any) {
+                      alert(err.message || 'Failed to update star status');
                     }
                   }}
                   style={{ background: proj.isStarred ? '#fbbf24' : '#e5e7eb', color: proj.isStarred ? '#fff' : '#6b7280', padding: '0.5rem', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title={proj.isStarred ? 'Unstar Project' : 'Star Project'}
+                  title={proj.isStarred ? 'Unstar Project (Featured on Home)' : 'Star Project (Feature on Home - Max 3)'}
                 >
                   ★
                 </button>

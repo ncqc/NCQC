@@ -455,6 +455,18 @@ export default function AchievementVisualEditor({ params }: { params: Promise<{ 
         .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow.ql-toolbar button.ql-active .ql-fill {
           fill: #ef4444 !important;
         }
+        .ql-snow .ql-picker.ql-font .ql-picker-options,
+        .ql-snow .ql-picker.ql-size .ql-picker-options,
+        .ql-snow .ql-picker-options {
+          max-height: 260px !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          overscroll-behavior: contain !important;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+          border-radius: 6px !important;
+          z-index: 99999 !important;
+          scrollbar-width: thin !important;
+        }
       `}</style>
 
       <div className="page-builder-wrapper">

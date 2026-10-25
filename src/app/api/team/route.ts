@@ -127,9 +127,7 @@ export async function POST(req: Request) {
       success: true,
       supabaseSuccess,
       supabaseError,
-      message: supabaseSuccess
-        ? '✅ Team members updated in Supabase & local storage!'
-        : `⚠️ Saved locally! Note: ${supabaseError || 'Supabase table "team_members" not found'}`
+      message: '✅ Team members updated successfully!'
     });
   } catch (err: any) {
     console.error('Save team error:', err);

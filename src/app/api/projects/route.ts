@@ -63,6 +63,22 @@ export async function POST(req: Request) {
     const { id, ...dataToSave } = payload;
     const item = { ...dataToSave, slug: cleanSlug };
 
+    // Enforce max 3 starred projects on Home Page
+    if (item.isStarred === true) {
+      const { data: existingStarred } = await supabase
+        .from('project')
+        .select('slug')
+        .eq('isStarred', true);
+
+      const otherStarred = (existingStarred || []).filter((p: any) => p.slug !== cleanSlug);
+      if (otherStarred.length >= 3) {
+        return NextResponse.json({
+          success: false,
+          error: 'Maximum 3 projects can be featured on the Home Page. Please unstar an existing project first.'
+        }, { status: 400 });
+      }
+    }
+
     const { data, error } = await supabase
       .from('project')
       .upsert(item, { onConflict: 'slug' })

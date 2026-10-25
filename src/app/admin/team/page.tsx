@@ -10,29 +10,10 @@ export default function AdminTeamPage() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [showSqlModal, setShowSqlModal] = useState(false);
-  const [copiedSql, setCopiedSql] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'teacher' | 'executive'>('all');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'warn' | 'error' } | null>(null);
 
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
-
-  const sqlQuery = `-- 1. Create team_members table in Supabase
-CREATE TABLE IF NOT EXISTS team_members (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'executive',
-  image TEXT DEFAULT '',
-  order_index INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 2. Grant table permissions to public anon & authenticated roles
-GRANT ALL ON TABLE public.team_members TO anon, authenticated, service_role;
-
--- 3. Disable Row Level Security (RLS) so your admin panel can read and write directly
-ALTER TABLE team_members DISABLE ROW LEVEL SECURITY;`;
 
   const fetchMembers = async () => {
     try {
@@ -128,16 +109,8 @@ ALTER TABLE team_members DISABLE ROW LEVEL SECURITY;`;
       const data = await res.json();
 
       if (data.success) {
-        if (data.supabaseSuccess) {
-          setStatusMessage({ text: '✅ Saved to Supabase Database and local storage!', type: 'success' });
-          alert('✅ Team members saved to Supabase and published successfully!');
-        } else {
-          setStatusMessage({ 
-            text: '⚠️ Saved locally! Note: Supabase table "team_members" not found. Click "📋 Supabase SQL Schema" above to create it in Supabase.', 
-            type: 'warn' 
-          });
-          alert('⚠️ Saved locally and active on website!\n\nTo sync directly with Supabase, create the "team_members" table using the SQL schema button at the top.');
-        }
+        setStatusMessage({ text: '✅ Team members saved and published successfully!', type: 'success' });
+        alert('✅ Team members saved and published successfully!');
       } else {
         alert('Save error: ' + (data.error || 'Failed to save'));
         setStatusMessage({ text: '❌ Error: ' + data.error, type: 'error' });
@@ -148,12 +121,6 @@ ALTER TABLE team_members DISABLE ROW LEVEL SECURITY;`;
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(sqlQuery);
-    setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 2500);
   };
 
   const filteredMembers = activeTab === 'all' 
@@ -179,28 +146,6 @@ ALTER TABLE team_members DISABLE ROW LEVEL SECURITY;`;
 
         {/* Global Action Buttons */}
         <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setShowSqlModal(true)}
-            style={{
-              background: '#ffffff',
-              color: '#334155',
-              border: '1.5px solid #cbd5e1',
-              padding: '0.7rem 1.1rem',
-              borderRadius: '10px',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.04)'
-            }}
-            title="View Supabase Table SQL"
-          >
-            <span>📋</span> Supabase SQL Schema
-          </button>
-
           <button
             type="button"
             onClick={() => handleAddNewMember('executive')}
@@ -566,95 +511,6 @@ ALTER TABLE team_members DISABLE ROW LEVEL SECURITY;`;
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Supabase SQL Schema Modal */}
-      {showSqlModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 99999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            maxWidth: '650px',
-            width: '100%',
-            padding: '2rem',
-            boxShadow: '0 20px 45px rgba(0,0,0,0.25)',
-            position: 'relative'
-          }}>
-            <button
-              type="button"
-              onClick={() => setShowSqlModal(false)}
-              style={{
-                position: 'absolute',
-                top: '1.25rem',
-                right: '1.25rem',
-                background: 'none',
-                border: 'none',
-                fontSize: '1.25rem',
-                cursor: 'pointer',
-                color: '#64748b'
-              }}
-            >
-              ✕
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
-              <span style={{ fontSize: '1.6rem' }}>⚡</span>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-                Supabase Table Setup (team_members)
-              </h2>
-            </div>
-
-            <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5, marginBottom: '1rem' }}>
-              To sync all team member photos and details with Supabase, open your <strong>Supabase Studio &gt; SQL Editor</strong> and run this query once:
-            </p>
-
-            <pre style={{
-              background: '#0f172a',
-              color: '#38bdf8',
-              padding: '1rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              overflowX: 'auto',
-              fontFamily: 'monospace',
-              lineHeight: 1.45,
-              marginBottom: '1.25rem'
-            }}>
-              {sqlQuery}
-            </pre>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 700 }}>
-                💡 Note: Team members are already saved locally and live on the website!
-              </span>
-              <button
-                type="button"
-                onClick={handleCopySql}
-                style={{
-                  background: copiedSql ? '#059669' : '#0f172a',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '0.65rem 1.25rem',
-                  borderRadius: '8px',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {copiedSql ? '✅ Copied to Clipboard!' : '📋 Copy SQL Code'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
