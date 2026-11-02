@@ -1009,6 +1009,27 @@ export default function AdminDashboard() {
                 <span>📸</span>
                 <span>+ Photo Album</span>
               </Link>
+
+              <Link
+                href="/admin/admins"
+                style={{
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                  color: '#fff',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <span>🛡️</span>
+                <span>Admins & Security</span>
+              </Link>
             </div>
           </div>
         </div>

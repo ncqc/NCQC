@@ -71,6 +71,7 @@ function AdminProtectedShell({ children }: { children: React.ReactNode }) {
     { name: 'Projects', path: '/admin/projects', icon: '🚀' },
     { name: 'Our Team', path: '/admin/team', icon: '👥' },
     { name: 'Gallery', path: '/admin/gallery', icon: '📸' },
+    { name: 'Admins & Security', path: '/admin/admins', icon: '🛡️' },
   ];
 
   return (

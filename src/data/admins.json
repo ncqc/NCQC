@@ -1,0 +1,43 @@
+[
+  {
+    "email": "dg.edits65@gmail.com",
+    "hashes": [
+      "02cabd883ba2f306ea1f9510a27478f6ef9d85ce2be6dbc0f2b3e361862c60c1"
+    ],
+    "role": "Super Admin",
+    "status": "active",
+    "isProtected": true,
+    "createdAt": "2026-10-01T00:00:00.000Z"
+  },
+  {
+    "email": "gamagecdt1@gmail.com",
+    "hashes": [
+      "1609ac30ef2e8ad5d268e3c2cbad3e5bc1310b92b4d23418d19f6c5dbeb7c8cf"
+    ],
+    "role": "Admin",
+    "status": "active",
+    "isProtected": false,
+    "createdAt": "2026-11-02T12:00:00.000Z"
+  },
+  {
+    "email": "kemitharandinu@gmail.com",
+    "hashes": [
+      "0441b05173cd1b9743c639397bb6a7fa46541c5aa6a12541ceb1bc7c2a0bdddc",
+      "c201dedd0567aacd120dc2e73ef6bcfe008ca5a15ce76808641d2e56b61da539"
+    ],
+    "role": "Super Admin",
+    "status": "active",
+    "isProtected": false,
+    "createdAt": "2026-10-01T00:00:00.000Z"
+  },
+  {
+    "email": "sadeeshmmal@gmail.com",
+    "hashes": [
+      "45bf00e7e7a00725183c14884b3ec477c118dc10ec8bc2308d7f8d3dd8bec6ff"
+    ],
+    "role": "Super Admin",
+    "status": "active",
+    "isProtected": false,
+    "createdAt": "2026-10-01T00:00:00.000Z"
+  }
+]

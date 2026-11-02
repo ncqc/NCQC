@@ -1,34 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { getAllAdminAccounts, saveAdminAccount } from '@/lib/adminUsers';
 
 // Server-side environment secrets (never exposed to client bundle)
 const SECRET = process.env.ADMIN_AUTH_SECRET || '000c6ccab81a2d69f0ef3b470b72907afee36d52ddcf2ce6818034032a759112';
-const DB_BASE = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 'https://ncqc-a787e-default-rtdb.firebaseio.com';
-
-const ADMIN_ACCOUNTS: Record<string, { email: string; hashes: string[]; role: string }> = {
-  'sadeeshmmal@gmail.com': {
-    email: 'sadeeshmmal@gmail.com',
-    hashes: [
-      '45bf00e7e7a00725183c14884b3ec477c118dc10ec8bc2308d7f8d3dd8bec6ff' // sadeesh@123
-    ],
-    role: 'Super Admin'
-  },
-  'kemitharandinu@gmail.com': {
-    email: 'kemitharandinu@gmail.com',
-    hashes: [
-      '0441b05173cd1b9743c639397bb6a7fa46541c5aa6a12541ceb1bc7c2a0bdddc', // Kemitha2008326@
-      'c201dedd0567aacd120dc2e73ef6bcfe008ca5a15ce76808641d2e56b61da539'  // Kemitha2008316@
-    ],
-    role: 'Super Admin'
-  },
-  'dg.edits65@gmail.com': {
-    email: 'dg.edits65@gmail.com',
-    hashes: [
-      '02cabd883ba2f306ea1f9510a27478f6ef9d85ce2be6dbc0f2b3e361862c60c1'  // Nikila2008326@
-    ],
-    role: 'Super Admin'
-  }
-};
+const DB_BASE = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || 'https://ncqc-a787e-default-rtdb.asia-southeast1.firebasedatabase.app';
 
 // Single-device active session enforcement (In-memory + Firebase sync)
 const activeSessionsMap = new Map<string, string>(); // email -> sessionId
@@ -167,9 +143,23 @@ export async function GET(req: NextRequest) {
     return res;
   }
 
+  const normalizedEmail = payload.email.toLowerCase().trim();
+  const accounts = await getAllAdminAccounts();
+  const account = accounts[normalizedEmail];
+
   // Ensure email is still in authorized admin list
-  if (!ADMIN_ACCOUNTS[payload.email.toLowerCase()]) {
+  if (!account) {
     const res = NextResponse.json({ authenticated: false }, { status: 401 });
+    res.cookies.delete('ncqc_admin_token');
+    return res;
+  }
+
+  // Ensure account has not been suspended
+  if (account.status === 'suspended') {
+    const res = NextResponse.json({ 
+      authenticated: false, 
+      error: 'Administrator Account Suspended: Your access has been revoked by the Super Administrator.' 
+    }, { status: 401 });
     res.cookies.delete('ncqc_admin_token');
     return res;
   }
@@ -191,8 +181,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     authenticated: true,
     user: {
-      email: payload.email,
-      role: payload.role || 'Super Admin'
+      email: account.email,
+      role: account.role || payload.role || 'Super Admin'
     }
   });
 }
@@ -213,7 +203,9 @@ export async function POST(req: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
     const rateKey = getClientIdentifier(req, normalizedEmail);
-    const adminRecord = ADMIN_ACCOUNTS[normalizedEmail];
+
+    const accounts = await getAllAdminAccounts();
+    const adminRecord = accounts[normalizedEmail];
 
     // Must be an authorized admin account
     if (!adminRecord) {
@@ -225,6 +217,17 @@ export async function POST(req: NextRequest) {
           attemptsLeft: failInfo.attemptsLeft
         },
         { status: 401 }
+      );
+    }
+
+    // Check if account has been suspended
+    if (adminRecord.status === 'suspended') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Account Suspended: This administrator account has been suspended by the Super Administrator. Please contact system management.'
+        },
+        { status: 403 }
       );
     }
 
@@ -253,7 +256,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. High-speed SHA-256 constant-time hash verification fallback
-    if (!isValid && adminRecord.hashes) {
+    if (!isValid && adminRecord.hashes && adminRecord.hashes.length > 0) {
       const candidateHash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
       const candidateBuffer = Buffer.from(candidateHash, 'hex');
       for (const expectedHash of adminRecord.hashes) {
@@ -311,6 +314,9 @@ export async function POST(req: NextRequest) {
     // 4. Generate unique sessionId and register active device session
     const sessionId = crypto.randomUUID();
     await setActiveSessionId(normalizedEmail, sessionId);
+
+    // Update lastLogin in background
+    saveAdminAccount(normalizedEmail, adminRecord.hashes, adminRecord.role, adminRecord.status).catch(() => {});
 
     const durationMs = rememberMe ? 7 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
     const now = Date.now();
