@@ -353,95 +353,202 @@ export default function CompetitionsClientView({ initialCompetitions }: Competit
                   </h3>
 
                   {/* Dates & Countdown Banner */}
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
-                    {isUpcoming && (
-                      <>
-                        <div style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          fontSize: '0.82rem',
-                          color: '#6d28d9',
-                          background: '#f5f3ff',
-                          border: '1px solid #ddd6fe',
-                          padding: '0.3rem 0.85rem',
-                          borderRadius: '100px',
-                          fontWeight: 700
+                  <div style={{
+                    width: '100%',
+                    background: isOngoing 
+                      ? 'linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%)' 
+                      : isUpcoming 
+                        ? 'linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%)' 
+                        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                    border: isOngoing 
+                      ? '1px solid #bbf7d0' 
+                      : isUpcoming 
+                        ? '1px solid #ddd6fe' 
+                        : '1px solid #e2e8f0',
+                    borderRadius: '14px',
+                    padding: '0.8rem 0.95rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.55rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                  }}>
+                    {/* Primary Date Row (Deadline or Registration Opens) */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', width: '100%' }}>
+                      <span style={{ fontSize: '1.05rem', lineHeight: 1.1, marginTop: '2px' }}>
+                        {isUpcoming ? '🗓️' : '⏰'}
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                        <span style={{
+                          fontSize: '0.67rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          color: isOngoing ? '#15803d' : isUpcoming ? '#6d28d9' : '#64748b'
                         }}>
-                          <span>🗓️ Starts:</span>
-                          <span>{competition.startDate || competition.eventDate || competition.date}</span>
+                          {isUpcoming ? 'Registration Opens' : 'Submissions Deadline'}
+                        </span>
+                        <span style={{
+                          fontSize: '0.84rem',
+                          fontWeight: 800,
+                          color: '#0f172a',
+                          lineHeight: 1.35,
+                          wordBreak: 'break-word'
+                        }}>
+                          {isUpcoming 
+                            ? (competition.startDate || competition.date || 'To be announced') 
+                            : (competition.deadline || 'Submissions Open')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Optional Event Date Row (if set and distinct from deadline) */}
+                    {competition.eventDate && competition.eventDate !== competition.deadline && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.55rem',
+                        width: '100%',
+                        paddingTop: '0.45rem',
+                        borderTop: isOngoing 
+                          ? '1px dashed #bbf7d0' 
+                          : isUpcoming 
+                            ? '1px dashed #ddd6fe' 
+                            : '1px dashed #e2e8f0'
+                      }}>
+                        <span style={{ fontSize: '0.95rem', lineHeight: 1.1, marginTop: '1px' }}>📅</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+                            Official Event Date
+                          </span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                            {competition.eventDate}
+                          </span>
                         </div>
-                        {timeUntilStart > 0 && (
-                          <div style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 800,
-                            color: '#7c3aed',
-                            background: '#faf5ff',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.35rem'
-                          }}>
-                            <span>⏳ Starts in:</span>
-                            <span style={{ fontFamily: 'monospace', fontSize: '0.88rem' }}>{formatCountdown(timeUntilStart)}</span>
-                          </div>
-                        )}
-                      </>
+                      </div>
                     )}
 
+                    {/* Bottom Status / Countdown Highlight Bar */}
                     {isOngoing && (
-                      <>
-                        <div style={{
-                          display: 'inline-flex',
+                      <div style={{
+                        width: '100%',
+                        background: timeUntilDeadline > 0 
+                          ? (timeUntilDeadline < 24 * 3600 * 1000 ? '#fff1f2' : '#ffffff') 
+                          : '#fef2f2',
+                        border: timeUntilDeadline > 0 
+                          ? (timeUntilDeadline < 24 * 3600 * 1000 ? '1px solid #fecdd3' : '1px solid #a7f3d0') 
+                          : '1px solid #fecdd3',
+                        borderRadius: '8px',
+                        padding: '0.4rem 0.65rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.5rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                      }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          color: timeUntilDeadline > 0 
+                            ? (timeUntilDeadline < 24 * 3600 * 1000 ? '#b91c1c' : '#047857') 
+                            : '#b91c1c',
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: '0.4rem',
-                          fontSize: '0.82rem',
-                          color: '#065f46',
-                          background: '#ecfdf5',
-                          border: '1px solid #a7f3d0',
-                          padding: '0.3rem 0.85rem',
-                          borderRadius: '100px',
-                          fontWeight: 700
+                          gap: '0.35rem'
                         }}>
-                          <span>⏰ Deadline:</span>
-                          <span>{competition.deadline || 'Submissions Open'}</span>
-                        </div>
-                        {timeUntilDeadline > 0 && (
-                          <div style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 800,
-                            color: '#b91c1c',
-                            background: '#fff1f2',
-                            border: '1px solid #fecdd3',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.35rem'
-                          }}>
-                            <span>⏱️ Remaining:</span>
-                            <span style={{ fontFamily: 'monospace', fontSize: '0.88rem' }}>{formatCountdown(timeUntilDeadline)}</span>
-                          </div>
-                        )}
-                      </>
+                          <span>{timeUntilDeadline > 0 ? '⏱️' : '🔴'}</span>
+                          <span>{timeUntilDeadline > 0 ? 'Remaining:' : 'Deadline:'}</span>
+                        </span>
+                        <span style={{
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          fontSize: '0.86rem',
+                          fontWeight: 900,
+                          color: timeUntilDeadline > 0 
+                            ? (timeUntilDeadline < 24 * 3600 * 1000 ? '#dc2626' : '#065f46') 
+                            : '#dc2626',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {timeUntilDeadline > 0 ? formatCountdown(timeUntilDeadline) : 'Closed'}
+                        </span>
+                      </div>
+                    )}
+
+                    {isUpcoming && timeUntilStart > 0 && (
+                      <div style={{
+                        width: '100%',
+                        background: '#ffffff',
+                        border: '1px solid #ddd6fe',
+                        borderRadius: '8px',
+                        padding: '0.4rem 0.65rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.5rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                      }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          color: '#6d28d9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}>
+                          <span>⏳</span> Starts in:
+                        </span>
+                        <span style={{
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          fontSize: '0.86rem',
+                          fontWeight: 900,
+                          color: '#7c3aed',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {formatCountdown(timeUntilStart)}
+                        </span>
+                      </div>
                     )}
 
                     {isPast && (
                       <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        fontSize: '0.82rem',
-                        color: '#64748b',
-                        background: '#f8fafc',
+                        width: '100%',
+                        background: '#ffffff',
                         border: '1px solid #e2e8f0',
-                        padding: '0.3rem 0.85rem',
-                        borderRadius: '100px',
-                        fontWeight: 700
+                        borderRadius: '8px',
+                        padding: '0.4rem 0.65rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.5rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
                       }}>
-                        <span>🏁 Concluded on:</span>
-                        <span>{competition.deadline || competition.eventDate || competition.date}</span>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          color: '#64748b',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}>
+                          <span>🏁</span> Submissions:
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          color: '#dc2626',
+                          background: '#fef2f2',
+                          border: '1px solid #fecdd3',
+                          padding: '0.12rem 0.5rem',
+                          borderRadius: '6px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.03em'
+                        }}>
+                          Closed / Past
+                        </span>
                       </div>
                     )}
                   </div>

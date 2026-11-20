@@ -245,7 +245,7 @@ export default function CompetitionTimer({
           </div>
           <div>
             <div style={{ fontSize: '0.72rem', fontWeight: 800, color: stage === 'upcoming' ? '#6d28d9' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {stage === 'upcoming' ? 'Launches On' : 'Event Date'}
+              {stage === 'upcoming' ? 'Registration Opens' : 'Registration Open Date'}
             </div>
             <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{effectiveStart}</div>
           </div>

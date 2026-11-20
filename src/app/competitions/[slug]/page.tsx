@@ -71,6 +71,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
             >
               <div 
                 style={{
+                  position: 'relative',
                   width: '100%',
                   borderRadius: '24px',
                   overflow: 'hidden',
@@ -79,6 +80,44 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
                   background: '#090d16'
                 }}
               >
+                {/* Sleek Non-intrusive Top Corner Event Date Badge */}
+                {competition.eventDate && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '14px',
+                      right: '14px',
+                      background: 'rgba(15, 23, 42, 0.78)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.22)',
+                      padding: '0.36rem 0.82rem',
+                      borderRadius: '9999px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      color: '#ffffff',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
+                      zIndex: 10,
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Event Date:
+                    </span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc' }}>
+                      {competition.eventDate}
+                    </span>
+                  </div>
+                )}
                 <img 
                   src={competition.image} 
                   alt={stripStyledText(competition.title)} 
@@ -101,8 +140,8 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
             <div className="comp-sidebar reveal-fade up delay-1 is-visible" style={{ width: '100%', marginTop: 0, paddingTop: 0 }}>
               <CompetitionTimer 
                 title={stripStyledText(competition.title)}
-                eventDate={competition.eventDate || competition.date}
-                startDate={competition.startDate || competition.eventDate || competition.date}
+                eventDate={competition.eventDate}
+                startDate={competition.startDate || competition.date}
                 dateStr={competition.deadline || competition.date}
                 statusType={competition.statusType}
                 rulesButtonText={competition.rulesButtonText}

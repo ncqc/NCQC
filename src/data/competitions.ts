@@ -33,6 +33,41 @@ export interface Competition {
 
 export const competitionsData: Competition[] = [
   {
+    "slug": "competition-1795189917893",
+    "title": "New Competition 2026",
+    "date": "November 20, 2026 at 09:27 PM",
+    "eventDate": "December 15, 2026 at 10:00 AM",
+    "deadline": "November 20, 2026 at 09:30 PM",
+    "shortDesc": "Enter a short summary description for the competition cards.",
+    "fullDesc": [
+      "Overview of the competition guidelines and eligibility requirements."
+    ],
+    "image": "/api/media/images/img-1795190040670-8vfg9s.webp",
+    "contentHtml": "<h1>Competition&nbsp;Guidelines&nbsp;&amp;&nbsp;Rules</h1><p>Start&nbsp;designing&nbsp;your&nbsp;competition&nbsp;page&nbsp;content&nbsp;here&nbsp;using&nbsp;the&nbsp;Word-like&nbsp;ribbon&nbsp;editor!</p>",
+    "rulesButtonText": "Download Rules & Regs",
+    "rulesButtonLink": "#",
+    "submissionsButtonText": "Register / Submissions →",
+    "submissionsButtonLink": "#",
+    "customButtons": [],
+    "sidebarWidget": null,
+    "created_at": "2026-11-20T15:51:57.67992+00:00",
+    "startDate": "November 20, 2026 at 09:27 PM",
+    "isStarred": false
+  },
+  {
+    "slug": "competition-1795092259464",
+    "title": "Esperto 26",
+    "date": "November 11, 2026 at 06:45 PM",
+    "startDate": "November 11, 2026 at 06:45 PM",
+    "eventDate": "December 20, 2026 at 09:00 AM",
+    "deadline": "December 14, 2026 at 11:59 PM",
+    "shortDesc": "Esperto 26 is the annual flagship inter-school quiz competition organised by the Nalanda College Quiz Club (NCQC).",
+    "fullDesc": [
+      "Overview of the competition guidelines and eligibility requirements."
+    ],
+    "image": "/api/media/images/image-1795095430293.webp"
+  },
+  {
     "slug": "competition-1792855214893",
     "title": "New Competition 2026",
     "date": "October 24, 2026 at 08:50 PM",
@@ -141,7 +176,8 @@ export async function getCompetitionsData(): Promise<Competition[]> {
     if (!error && Array.isArray(data)) {
       return (data as Competition[]).map(c => ({
         ...c,
-        startDate: c.startDate || c.eventDate || c.date,
+        startDate: c.startDate || c.date || c.eventDate,
+        eventDate: c.eventDate || '',
         image: maskImageUrl(c.image),
         isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
       }));
@@ -151,7 +187,8 @@ export async function getCompetitionsData(): Promise<Competition[]> {
   }
   return competitionsData.filter(c => c.slug !== '__site_settings__').map(c => ({
     ...c,
-    startDate: c.startDate || c.eventDate || c.date,
+    startDate: c.startDate || c.date || c.eventDate,
+    eventDate: c.eventDate || '',
     image: maskImageUrl(c.image),
     isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
   }));
@@ -179,7 +216,8 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
       if (match) {
         return {
           ...match,
-          startDate: match.startDate || match.eventDate || match.date,
+          startDate: match.startDate || match.date || match.eventDate,
+          eventDate: match.eventDate || '',
           image: maskImageUrl(match.image),
           isStarred: starredSlugs.has(match.slug) || (match.isStarred === true)
         };
@@ -198,7 +236,8 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
   if (!fallback) return null;
   return {
     ...fallback,
-    startDate: fallback.startDate || fallback.eventDate || fallback.date,
+    startDate: fallback.startDate || fallback.date || fallback.eventDate,
+    eventDate: fallback.eventDate || '',
     image: maskImageUrl(fallback.image),
     isStarred: starredSlugs.has(fallback.slug) || (fallback.isStarred === true)
   };

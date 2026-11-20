@@ -774,24 +774,24 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
               </div>
             </div>
 
-            {/* Event Date (Clean Calendar Modal Trigger Card) */}
+            {/* 1. Registration Open Date (Clean Calendar Modal Trigger Card) */}
             <div style={{ marginBottom: '1.25rem', padding: '0.9rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  📅 Event Date & Time
+                  🟢 Registration Open Date & Time
                 </label>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '0.15rem 0.5rem', borderRadius: '100px' }}>
-                  Calendar Modal
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#059669', background: '#d1fae5', padding: '0.15rem 0.5rem', borderRadius: '100px' }}>
+                  Live Card
                 </span>
               </div>
 
-              {/* Big Clean Calendar Modal Button */}
+              {/* Calendar Modal Button */}
               <button
                 type="button"
-                onClick={() => setPickerTarget('eventDate')}
+                onClick={() => setPickerTarget('startDate')}
                 style={{
                   width: '100%',
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                   color: '#fff',
                   border: 'none',
                   padding: '0.65rem 1rem',
@@ -803,7 +803,7 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  boxShadow: '0 3px 10px rgba(124, 58, 237, 0.25)',
+                  boxShadow: '0 3px 10px rgba(5, 150, 105, 0.25)',
                   marginBottom: '0.65rem'
                 }}
               >
@@ -812,10 +812,10 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
 
               {/* Current Selected Value Card */}
               <div 
-                onClick={() => setPickerTarget('eventDate')}
+                onClick={() => setPickerTarget('startDate')}
                 style={{ 
                   background: '#ffffff', 
-                  border: '1.5px solid #cbd5e1', 
+                  border: '1.5px solid #a7f3d0', 
                   borderRadius: '8px', 
                   padding: '0.55rem 0.75rem', 
                   cursor: 'pointer',
@@ -827,28 +827,28 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                 title="Click to modify via Calendar Modal"
               >
                 <div>
-                  <span style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>
-                    Current Event Date:
+                  <span style={{ fontSize: '0.64rem', color: '#047857', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>
+                    Current Reg Open Date:
                   </span>
-                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', display: 'block', marginTop: '1px' }}>
-                    {competition.eventDate || competition.date || 'Not set'}
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#064e3b', display: 'block', marginTop: '1px' }}>
+                    {competition.startDate || competition.date || 'Not set'}
                   </span>
                 </div>
-                <span style={{ fontSize: '0.8rem', color: '#7c3aed', fontWeight: 700 }}>Change ↗</span>
+                <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 700 }}>Change ↗</span>
               </div>
 
               <input 
-                value={competition.eventDate || competition.date || ''}
-                onChange={(e) => updateMultipleFields({ eventDate: e.target.value, date: e.target.value })}
+                value={competition.startDate || competition.date || ''}
+                onChange={(e) => updateMultipleFields({ startDate: e.target.value, date: e.target.value })}
                 placeholder="e.g. October 25, 2026 at 12:00 AM"
                 style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', fontWeight: 600 }}
               />
               <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', marginTop: '0.25rem' }}>
-                Displayed in the 3D details card at the top.
+                Displayed in Competition Details 3D card as "Registration Open Date".
               </span>
             </div>
 
-            {/* Submissions Deadline (Clean Calendar Modal Trigger Card + Real-time Countdown) */}
+            {/* 2. Submissions Deadline (Clean Calendar Modal Trigger Card + Real-time Countdown) */}
             <div style={{ marginBottom: '1.25rem', padding: '0.9rem', background: '#fff1f2', borderRadius: '10px', border: '1.5px solid #fecdd3' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#991b1b', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -859,7 +859,7 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                 </span>
               </div>
 
-              {/* Big Clean Calendar Modal Button */}
+              {/* Calendar Modal Button */}
               <button
                 type="button"
                 onClick={() => setPickerTarget('deadline')}
@@ -947,6 +947,80 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
                   return null;
                 })()}
               </div>
+            </div>
+
+            {/* 3. Official Event Date (Competition Day) */}
+            <div style={{ marginBottom: '1.25rem', padding: '0.9rem', background: '#f5f3ff', borderRadius: '10px', border: '1.5px solid #ddd6fe' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#5b21b6', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  📅 Official Event Date (Competition Day)
+                </label>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '0.15rem 0.5rem', borderRadius: '100px' }}>
+                  Poster Badge
+                </span>
+              </div>
+
+              {/* Calendar Modal Button */}
+              <button
+                type="button"
+                onClick={() => setPickerTarget('eventDate')}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.65rem 1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 3px 10px rgba(124, 58, 237, 0.25)',
+                  marginBottom: '0.65rem'
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>🗓️</span> Open Calendar & Time Picker
+              </button>
+
+              {/* Current Selected Value Card */}
+              <div 
+                onClick={() => setPickerTarget('eventDate')}
+                style={{ 
+                  background: '#ffffff', 
+                  border: '1.5px solid #c4b5fd', 
+                  borderRadius: '8px', 
+                  padding: '0.55rem 0.75rem', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '0.45rem'
+                }}
+                title="Click to modify via Calendar Modal"
+              >
+                <div>
+                  <span style={{ fontSize: '0.64rem', color: '#6d28d9', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>
+                    Current Event Date:
+                  </span>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#4c1d95', display: 'block', marginTop: '1px' }}>
+                    {competition.eventDate || 'Not set'}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.8rem', color: '#7c3aed', fontWeight: 700 }}>Change ↗</span>
+              </div>
+
+              <input 
+                value={competition.eventDate || ''}
+                onChange={(e) => updateField('eventDate', e.target.value)}
+                placeholder="e.g. December 20, 2026 at 09:00 AM"
+                style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '6px', border: '1px solid #c4b5fd', fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', fontWeight: 600 }}
+              />
+              <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block', marginTop: '0.25rem' }}>
+                Displayed on the top corner badge of the competition poster image.
+              </span>
             </div>
 
             {/* Rules & Regulations Button */}
@@ -1171,12 +1245,26 @@ export default function CompetitionVisualEditor({ params }: { params: Promise<{ 
       {pickerTarget && (
         <DateTimePickerModal
           isOpen={true}
-          title={pickerTarget === 'deadline' ? 'SELECT DEADLINE DATE & TIME' : 'SELECT START / EVENT DATE & TIME'}
-          initialValue={pickerTarget === 'deadline' ? (competition.deadline || competition.date) : (competition.startDate || competition.eventDate || competition.date)}
+          title={
+            pickerTarget === 'deadline' 
+              ? 'SELECT DEADLINE DATE & TIME' 
+              : pickerTarget === 'eventDate'
+                ? 'SELECT OFFICIAL EVENT DATE & TIME'
+                : 'SELECT REGISTRATION OPEN DATE & TIME'
+          }
+          initialValue={
+            pickerTarget === 'deadline' 
+              ? (competition.deadline || competition.date) 
+              : pickerTarget === 'eventDate'
+                ? (competition.eventDate || competition.date)
+                : (competition.startDate || competition.date)
+          }
           onClose={() => setPickerTarget(null)}
           onSelect={(formatted) => {
-            if (pickerTarget === 'startDate' || pickerTarget === 'eventDate') {
-              updateMultipleFields({ startDate: formatted, eventDate: formatted, date: formatted });
+            if (pickerTarget === 'startDate') {
+              updateMultipleFields({ startDate: formatted, date: formatted });
+            } else if (pickerTarget === 'eventDate') {
+              updateField('eventDate', formatted);
             } else if (pickerTarget === 'deadline') {
               updateField('deadline', formatted);
             }

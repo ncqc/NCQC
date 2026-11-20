@@ -291,8 +291,8 @@ export default function CompetitionsAdmin() {
                       fontWeight: 700,
                       color: '#475569'
                     }}>
-                      <span style={{ color: '#7c3aed' }}>🗓️</span>
-                      <span><strong>Starts:</strong> {comp.startDate || comp.eventDate || comp.date}</span>
+                      <span style={{ color: '#059669' }}>🟢</span>
+                      <span><strong>Reg Opens:</strong> {comp.startDate || comp.date}</span>
                     </div>
 
                     {comp.deadline && (
@@ -310,6 +310,24 @@ export default function CompetitionsAdmin() {
                       }}>
                         <span>⏰</span>
                         <span><strong>Deadline:</strong> {comp.deadline}</span>
+                      </div>
+                    )}
+
+                    {comp.eventDate && (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        background: '#f5f3ff',
+                        border: '1px solid #ddd6fe',
+                        borderRadius: '100px',
+                        padding: '0.28rem 0.85rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: '#6d28d9'
+                      }}>
+                        <span>📅</span>
+                        <span><strong>Event Date:</strong> {comp.eventDate}</span>
                       </div>
                     )}
                   </div>

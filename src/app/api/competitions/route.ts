@@ -56,7 +56,8 @@ export async function getCompetitionsData(): Promise<Competition[]> {
     if (!error && Array.isArray(data)) {
       return (data as Competition[]).map(c => ({
         ...c,
-        startDate: c.startDate || c.eventDate || c.date,
+        startDate: c.startDate || c.date || c.eventDate,
+        eventDate: c.eventDate || '',
         image: maskImageUrl(c.image),
         isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
       }));
@@ -66,7 +67,8 @@ export async function getCompetitionsData(): Promise<Competition[]> {
   }
   return competitionsData.filter(c => c.slug !== '__site_settings__').map(c => ({
     ...c,
-    startDate: c.startDate || c.eventDate || c.date,
+    startDate: c.startDate || c.date || c.eventDate,
+    eventDate: c.eventDate || '',
     image: maskImageUrl(c.image),
     isStarred: starredSlugs.has(c.slug) || (c.isStarred === true)
   }));
@@ -94,7 +96,8 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
       if (match) {
         return {
           ...match,
-          startDate: match.startDate || match.eventDate || match.date,
+          startDate: match.startDate || match.date || match.eventDate,
+          eventDate: match.eventDate || '',
           image: maskImageUrl(match.image),
           isStarred: starredSlugs.has(match.slug) || (match.isStarred === true)
         };
@@ -113,7 +116,8 @@ export async function getCompetition(slug: string): Promise<Competition | null> 
   if (!fallback) return null;
   return {
     ...fallback,
-    startDate: fallback.startDate || fallback.eventDate || fallback.date,
+    startDate: fallback.startDate || fallback.date || fallback.eventDate,
+    eventDate: fallback.eventDate || '',
     image: maskImageUrl(fallback.image),
     isStarred: starredSlugs.has(fallback.slug) || (fallback.isStarred === true)
   };
@@ -137,8 +141,11 @@ export async function POST(req: Request) {
       try {
         for (const item of updatedList) {
           const { isStarred: _unused, startDate: _un1, statusType: _un2, ...itemForSupabase } = item;
-          if (item.startDate && !itemForSupabase.eventDate) {
-            itemForSupabase.eventDate = item.startDate;
+          if (item.startDate) {
+            itemForSupabase.date = item.startDate;
+          }
+          if (item.eventDate !== undefined) {
+            itemForSupabase.eventDate = item.eventDate;
           }
           const { error } = await supabase
             .from('competition')
@@ -155,8 +162,11 @@ export async function POST(req: Request) {
     } else if (payload && typeof payload === 'object' && payload.slug) {
       const single = { ...payload, slug: (payload.slug || '').trim() } as Competition;
       const { isStarred: singleStarred, startDate: _un1, statusType: _un2, ...itemForSupabase } = single;
-      if (single.startDate && !itemForSupabase.eventDate) {
-        itemForSupabase.eventDate = single.startDate;
+      if (single.startDate) {
+        itemForSupabase.date = single.startDate;
+      }
+      if (single.eventDate !== undefined) {
+        itemForSupabase.eventDate = single.eventDate;
       }
       
       try {
