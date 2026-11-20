@@ -362,7 +362,7 @@ export default function CompetitionFormsAdmin() {
       required: true,
       helpText: isEmail ? 'This form is limited to 1 response per email.' : isTeam ? 'Specify all members of your quiz team squad.' : undefined,
       options: defaultOptions,
-      teamConfig: isTeam ? { memberCount: 4, includeGrade: true, includePhone: true } : undefined
+      teamConfig: isTeam ? { memberCount: 4, includeGrade: true, includePhone: true, includeNic: false, requireNic: false } : undefined
     };
 
     setFormFields([...formFields, newField]);
@@ -695,15 +695,16 @@ export default function CompetitionFormsAdmin() {
   });
 
   // Helper to parse squad team members safely from array or raw data string
-  const parseTeamMembers = (sub: FormSubmission) => {
+  const parseTeamMembers = (sub: FormSubmission): Array<{ role?: string; name?: string; grade?: string; contact?: string; nicUrl?: string; nicName?: string }> => {
     if (sub.teamMembers && sub.teamMembers.length > 0) {
       return sub.teamMembers;
     }
     const raw = sub.data['Team Members'] || sub.data['teamMembers'] || sub.data['team_members'];
     if (!raw || typeof raw !== 'string') return [];
-    return raw.split(';').map(part => {
+    const list: Array<{ role?: string; name?: string; grade?: string; contact?: string; nicUrl?: string; nicName?: string }> = [];
+    raw.split(';').forEach(part => {
       const trimmed = part.trim();
-      if (!trimmed) return null;
+      if (!trimmed) return;
       const colonIdx = trimmed.indexOf(':');
       let role = 'Member';
       let rest = trimmed;
@@ -713,7 +714,13 @@ export default function CompetitionFormsAdmin() {
       }
       let grade = '';
       let contact = '';
+      let nicUrl: string | undefined = undefined;
       let name = rest;
+      const nicMatch = rest.match(/\{NIC:\s*([^}]+)\}/);
+      if (nicMatch) {
+        nicUrl = nicMatch[1].trim();
+        name = name.replace(nicMatch[0], '').trim();
+      }
       const gradeMatch = rest.match(/\(([^)]+)\)/);
       if (gradeMatch) {
         grade = gradeMatch[1];
@@ -724,38 +731,209 @@ export default function CompetitionFormsAdmin() {
         contact = contactMatch[1];
         name = name.replace(contactMatch[0], '').trim();
       }
-      return { role, name, grade, contact };
-    }).filter((x): x is { role: string; name: string; grade: string; contact: string } => Boolean(x));
+      list.push({ role, name, grade, contact, nicUrl });
+    });
+    return list;
   };
 
-  // Export Filtered Submissions to Excel (CSV)
+  // Helper to convert relative media proxy URLs to absolute clickable web links for PDF & Excel
+  const getSiteOrigin = () => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      return window.location.origin;
+    }
+    return 'http://localhost:3000';
+  };
+
+  const toAbsoluteUrl = (url?: string) => {
+    if (!url) return '';
+    const clean = url.trim();
+    if (!clean) return '';
+    if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+    const origin = getSiteOrigin();
+    return `${origin}${clean.startsWith('/') ? '' : '/'}${clean}`;
+  };
+
+  // Helper to intelligently extract clean, standardized details across diverse form templates
+  const extractSubmissionDetails = (sub: FormSubmission) => {
+    let school = '';
+    let candidate = '';
+    let email = '';
+    let phone = '';
+    const attachedFiles: Array<{ label: string; url: string }> = [];
+
+    for (const [k, v] of Object.entries(sub.data)) {
+      if (v === undefined || v === null) continue;
+      const valStr = String(v).trim();
+      if (!valStr) continue;
+      const keyLower = k.toLowerCase().trim();
+
+      // Detect uploaded documents or slips
+      if (valStr.startsWith('/api/media/') || valStr.startsWith('http://') || valStr.startsWith('https://') || /\.(pdf|webp|png|jpe?g|gif)(\?.*)?$/i.test(valStr)) {
+        attachedFiles.push({ label: k, url: toAbsoluteUrl(valStr) });
+      }
+
+      // Detect School / College / Institution
+      if (!school && (keyLower.includes('school') || keyLower.includes('institution') || keyLower.includes('college') || keyLower.includes('academy'))) {
+        school = valStr;
+      }
+
+      // Detect Email
+      if (!email && (keyLower.includes('mail') || (valStr.includes('@') && valStr.includes('.')))) {
+        email = valStr;
+      }
+
+      // Detect Contact Phone / WhatsApp
+      if (!phone && (keyLower.includes('phone') || keyLower.includes('mobile') || keyLower.includes('whatsapp') || keyLower.includes('contact') || keyLower.includes('tel'))) {
+        phone = valStr;
+      }
+
+      // Detect Candidate / Contact Person
+      if (!candidate && (keyLower.includes('candidate') || keyLower.includes('president') || keyLower === 'name' || keyLower.includes('full name') || keyLower.includes('student name') || keyLower.includes('master'))) {
+        candidate = valStr;
+      }
+    }
+
+    const members = parseTeamMembers(sub);
+    if (!candidate && members.length > 0 && members[0]?.name) {
+      candidate = members[0].name;
+    }
+    if (!phone && members.length > 0 && members[0]?.contact) {
+      phone = members[0].contact;
+    }
+    if (!school) {
+      school = candidate && candidate !== 'N/A' ? `Delegation of ${candidate}` : 'Nalanda College / Open Candidate';
+    }
+    if (!candidate) {
+      candidate = school && school !== 'N/A' ? school : 'Registered Candidate';
+    }
+
+    return { school, candidate, email, phone, attachedFiles, members };
+  };
+
+  // Export Filtered Submissions to Excel (CSV) with Clean Squad Columns & Full Web Links
   const handleExportCSV = () => {
     if (filteredSubmissions.length === 0) {
       alert('No registrations found to export for the current filters!');
       return;
     }
 
-    const allHeaders = new Set<string>(['Registration ID', 'Tournament Scope', 'Category', 'Form Title', 'Submitted At', 'Status']);
+    const maxSquadCount = 5;
+
+    // Standardized, high-order business columns
+    const baseHeaders = [
+      'Registration ID',
+      'Status',
+      'Competition / Form Title',
+      'Tournament Scope',
+      'Category',
+      'Submitted Date & Time',
+      'School / Institution Name',
+      'Candidate / Contact Person',
+      'Contact Email',
+      'Contact Phone / WhatsApp',
+      'Team Leader Name',
+      'Team Leader Grade',
+      'Team Leader WhatsApp',
+      'Team Leader NIC Document Link',
+      'Member 2 Name',
+      'Member 2 Grade',
+      'Member 2 NIC Document Link',
+      'Member 3 Name',
+      'Member 3 Grade',
+      'Member 3 NIC Document Link',
+      'Member 4 Name',
+      'Member 4 Grade',
+      'Member 4 NIC Document Link',
+      'Member 5 Name',
+      'Member 5 Grade',
+      'Member 5 NIC Document Link',
+      'Uploaded Document / Slip Link',
+      'Team Squad Summary'
+    ];
+
+    // Collect any extra custom fields from submissions, excluding duplicates
+    const extraHeaders: string[] = [];
+    const ignoredKeys = new Set([
+      'Registration ID', 'referralId', 'Referral ID', 'Team Members', 'teamMembers', 'team_members',
+      'School Name', 'Name of the School', 'School / Institution Name', 'Candidate Name', 'Name',
+      'Email Address', 'Email', 'School/Club E-mail', 'School/Club Email', 'Contact Number',
+      'Leader Phone / WhatsApp', 'Phone', 'Mobile Number', 'Grade', 'Category Selection'
+    ]);
+
     filteredSubmissions.forEach(sub => {
       Object.keys(sub.data).forEach(k => {
-        if (k !== 'Referral ID') allHeaders.add(k);
+        if (!ignoredKeys.has(k) && !extraHeaders.includes(k) && !baseHeaders.includes(k)) {
+          extraHeaders.push(k);
+        }
       });
     });
 
-    const headerArray = Array.from(allHeaders);
+    const allHeaders = [...baseHeaders, ...extraHeaders];
     const csvRows: string[] = [];
-    csvRows.push(headerArray.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
+    csvRows.push(allHeaders.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
 
     filteredSubmissions.forEach(sub => {
-      const row = headerArray.map(header => {
-        let val = '';
-        if (header === 'Registration ID') val = sub.id;
-        else if (header === 'Tournament Scope') val = sub.scope.toUpperCase();
-        else if (header === 'Category') val = sub.category || 'Senior (Grade 10 - 13)';
-        else if (header === 'Form Title') val = sub.formTitle;
-        else if (header === 'Submitted At') val = sub.submittedAt;
-        else if (header === 'Status') val = sub.status.toUpperCase();
-        else val = sub.data[header] !== undefined ? String(sub.data[header]) : '';
+      const details = extractSubmissionDetails(sub);
+      const members = details.members;
+      const leader = members[0] || {};
+
+      // Clean readable squad text summary without raw regex tags
+      const cleanSquadSummary = members.length > 0
+        ? members.map((m, idx) => {
+            const parts = [`${idx === 0 ? 'Leader' : `Member ${idx + 1}`}: ${m.name || 'Anonymous'}`];
+            if (m.grade) parts.push(`Grade ${m.grade}`);
+            if (m.contact) parts.push(`Phone ${m.contact}`);
+            if (m.nicUrl) parts.push(`NIC: ${toAbsoluteUrl(m.nicUrl)}`);
+            return parts.join(', ');
+          }).join(' | ')
+        : (sub.data['Team Members'] ? String(sub.data['Team Members']).replace(/\{NIC:[^}]+\}/g, '').trim() : '');
+
+      const slipUrl = details.attachedFiles.length > 0 ? details.attachedFiles[0].url : '';
+
+      const rowData: Record<string, string> = {
+        'Registration ID': sub.id || '',
+        'Status': sub.status ? sub.status.toUpperCase() : 'CONFIRMED',
+        'Competition / Form Title': sub.formTitle || sub.competitionTitle || '',
+        'Tournament Scope': (sub.scope || 'inter-school').toUpperCase(),
+        'Category': sub.category || 'Senior (Grade 10 - 13)',
+        'Submitted Date & Time': sub.submittedAt || '',
+        'School / Institution Name': details.school,
+        'Candidate / Contact Person': details.candidate,
+        'Contact Email': details.email,
+        'Contact Phone / WhatsApp': details.phone,
+        'Team Leader Name': leader.name || '',
+        'Team Leader Grade': leader.grade || '',
+        'Team Leader WhatsApp': leader.contact || '',
+        'Team Leader NIC Document Link': leader.nicUrl ? toAbsoluteUrl(leader.nicUrl) : '',
+        'Uploaded Document / Slip Link': slipUrl,
+        'Team Squad Summary': cleanSquadSummary
+      };
+
+      // Populate Members 2 through 5
+      for (let i = 2; i <= maxSquadCount; i++) {
+        const m = members[i - 1] || {};
+        rowData[`Member ${i} Name`] = m.name || '';
+        rowData[`Member ${i} Grade`] = m.grade || '';
+        rowData[`Member ${i} NIC Document Link`] = m.nicUrl ? toAbsoluteUrl(m.nicUrl) : '';
+      }
+
+      // Add extra custom fields
+      extraHeaders.forEach(k => {
+        const v = sub.data[k];
+        if (v !== undefined && v !== null) {
+          const vStr = String(v);
+          if (vStr.startsWith('/api/media/') || /\.(pdf|webp|png|jpe?g)(\?.*)?$/i.test(vStr)) {
+            rowData[k] = toAbsoluteUrl(vStr);
+          } else {
+            rowData[k] = vStr;
+          }
+        } else {
+          rowData[k] = '';
+        }
+      });
+
+      const row = allHeaders.map(header => {
+        const val = rowData[header] || '';
         return `"${val.replace(/"/g, '""')}"`;
       });
       csvRows.push(row.join(','));
@@ -768,6 +946,7 @@ export default function CompetitionFormsAdmin() {
         : filterCompetition.replace(/[^a-zA-Z0-9]/g, '_');
     const catTag = filterCategory === 'all' ? 'All_Categories' : filterCategory.replace(/[^a-zA-Z0-9]/g, '_');
 
+    // Include UTF-8 BOM so Microsoft Excel renders accented and non-ASCII characters smoothly
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csvRows.join('\n'));
     const link = document.createElement('a');
     link.setAttribute('href', csvContent);
@@ -775,10 +954,10 @@ export default function CompetitionFormsAdmin() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showNotification(`Exported ${filteredSubmissions.length} registrations to CSV / Excel`);
+    showNotification(`Exported ${filteredSubmissions.length} registrations to neatly formatted Excel CSV`);
   };
 
-  // Export Filtered Submissions as Official PDF Report
+  // Export Filtered Submissions as Official High-Resolution PDF Dossier Report
   const handleExportPDF = () => {
     if (filteredSubmissions.length === 0) {
       alert('No registrations found to export for the current filters!');
@@ -795,18 +974,15 @@ export default function CompetitionFormsAdmin() {
     const scopeName = filterScope === 'all' ? 'All Scopes' : filterScope.toUpperCase();
     const statusName = filterStatus === 'all' ? 'All Statuses' : filterStatus.toUpperCase();
 
-    const printWin = window.open('', '_blank', 'width=1150,height=850');
+    const printWin = window.open('', '_blank', 'width=1350,height=900');
     if (!printWin) {
       alert('Please allow popups to export the PDF report.');
       return;
     }
 
     const rowsHtml = filteredSubmissions.map((sub, i) => {
-      const candidate = sub.data['School / Institution Name'] || sub.data['School Name'] || sub.data['Candidate Name'] || sub.data['Full Name'] || 'N/A';
-      const contact = sub.data['Email Address'] || sub.data['Email'] || sub.data['Leader Phone / WhatsApp'] || sub.data['Mobile Number'] || 'N/A';
-      const squad = sub.teamMembers && sub.teamMembers.length > 0
-        ? sub.teamMembers.map(m => `${m.role || 'Member'}: ${m.name}`).join(' | ')
-        : (sub.data['Team Members'] || '-');
+      const details = extractSubmissionDetails(sub);
+      const members = details.members;
 
       const statusBadge = sub.status === 'confirmed'
         ? '<span style="color:#15803d;background:#dcfce7;border:1px solid #86efac;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">CONFIRMED</span>'
@@ -814,17 +990,73 @@ export default function CompetitionFormsAdmin() {
           ? '<span style="color:#b91c1c;background:#fee2e2;border:1px solid #fca5a5;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">REJECTED</span>'
           : '<span style="color:#b45309;background:#fef3c7;border:1px solid #fde047;padding:3px 8px;border-radius:6px;font-weight:800;font-size:11px;">PENDING</span>';
 
+      // Render Squad members as clean, structured mini cards with direct clickable NIC links
+      const squadHtml = members.length > 0 ? `
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          ${members.map((m, idx) => `
+            <div style="background:#ffffff;border:1px solid #e2e8f0;border-left:3px solid ${idx === 0 ? '#ea580c' : '#3b82f6'};border-radius:6px;padding:4px 7px;font-size:11px;line-height:1.35;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                <span style="font-weight:800;color:${idx === 0 ? '#ea580c' : '#1e293b'};">
+                  ${idx === 0 ? '👑 Leader' : `👤 M${idx + 1}`}: ${m.name || 'Anonymous'}
+                </span>
+                ${m.grade ? `<span style="font-weight:700;color:#64748b;font-size:10px;background:#f1f5f9;padding:1px 4px;border-radius:4px;">${m.grade}</span>` : ''}
+              </div>
+              ${m.contact ? `<div style="color:#047857;font-size:10px;font-weight:700;margin-top:1px;">📞 ${m.contact}</div>` : ''}
+              ${m.nicUrl ? `
+                <div style="margin-top:3px;">
+                  <a href="${toAbsoluteUrl(m.nicUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:3px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:800;text-decoration:none;">
+                    <span>${m.nicUrl.toLowerCase().includes('.pdf') ? '📄' : '🆔'}</span>
+                    <span>View Member NIC ↗</span>
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      ` : `<span style="color:#94a3b8;font-size:11px;">${sub.data['Team Members'] ? String(sub.data['Team Members']).replace(/\{NIC:[^}]+\}/g, '').trim() : '-'}</span>`;
+
+      // Render uploaded slips/documents with clean clickable badges
+      const attachmentsHtml = details.attachedFiles.length > 0 ? `
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${details.attachedFiles.map(f => `
+            <a href="${f.url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:3px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:3px 7px;border-radius:5px;font-size:10.5px;font-weight:800;text-decoration:none;">
+              <span>📄</span>
+              <span>${f.label.length > 18 ? f.label.substring(0, 16) + '...' : f.label} ↗</span>
+            </a>
+          `).join('')}
+        </div>
+      ` : '<span style="color:#94a3b8;font-size:11px;">None</span>';
+
       return `
-        <tr style="border-bottom:1px solid #e2e8f0;font-size:12px;">
-          <td style="padding:10px 8px;font-weight:700;color:#0f172a;">${i + 1}</td>
-          <td style="padding:10px 8px;font-family:monospace;font-weight:800;color:#dc2626;">${sub.id}</td>
-          <td style="padding:10px 8px;font-weight:800;color:#0f172a;">${candidate}</td>
-          <td style="padding:10px 8px;color:#475569;">${contact}</td>
-          <td style="padding:10px 8px;color:#334155;font-weight:600;">${sub.formTitle}</td>
-          <td style="padding:10px 8px;color:#64748b;">${sub.category || 'Senior'}</td>
-          <td style="padding:10px 8px;font-size:11px;color:#475569;max-width:240px;line-height:1.4;">${squad}</td>
-          <td style="padding:10px 8px;color:#64748b;white-space:nowrap;">${sub.submittedAt || '-'}</td>
-          <td style="padding:10px 8px;">${statusBadge}</td>
+        <tr style="border-bottom:1px solid #e2e8f0;font-size:11.5px;">
+          <td style="padding:8px 6px;font-weight:700;color:#0f172a;text-align:center;">${i + 1}</td>
+          <td style="padding:8px 6px;font-family:monospace;font-weight:800;color:#dc2626;white-space:nowrap;">${sub.id}</td>
+          <td style="padding:8px 6px;">
+            <div style="font-weight:800;color:#0f172a;font-size:12px;margin-bottom:2px;">${details.school}</div>
+            <div style="color:#64748b;font-size:11px;">👤 ${details.candidate}</div>
+          </td>
+          <td style="padding:8px 6px;">
+            ${details.email ? `<div style="color:#334155;font-weight:600;font-size:11px;">✉️ ${details.email}</div>` : ''}
+            ${details.phone ? `<div style="color:#047857;font-weight:700;font-size:11px;margin-top:2px;">📞 ${details.phone}</div>` : ''}
+            ${!details.email && !details.phone ? '<span style="color:#94a3b8;">N/A</span>' : ''}
+          </td>
+          <td style="padding:8px 6px;">
+            <div style="color:#0f172a;font-weight:800;">${sub.formTitle}</div>
+            <div style="color:#64748b;font-size:10.5px;margin-top:2px;">Scope: <strong style="color:#334155;">${(sub.scope || 'inter-school').toUpperCase()}</strong></div>
+            <div style="color:#64748b;font-size:10.5px;">Cat: <strong style="color:#334155;">${sub.category || 'Senior'}</strong></div>
+          </td>
+          <td style="padding:8px 6px;min-width:240px;max-width:320px;">
+            ${squadHtml}
+          </td>
+          <td style="padding:8px 6px;min-width:130px;">
+            ${attachmentsHtml}
+          </td>
+          <td style="padding:8px 6px;color:#64748b;white-space:nowrap;font-size:11px;">
+            ${sub.submittedAt || '-'}
+          </td>
+          <td style="padding:8px 6px;text-align:center;">
+            ${statusBadge}
+          </td>
         </tr>
       `;
     }).join('');
@@ -833,40 +1065,44 @@ export default function CompetitionFormsAdmin() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>NCQC Submissions Report - ${compName}</title>
+          <title>NCQC Submissions Dossier Report - ${compName}</title>
           <style>
-            @page { size: landscape; margin: 12mm; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 24px; color: #0f172a; }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #dc2626; padding-bottom: 12px; margin-bottom: 16px; }
-            .title { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
-            .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
-            .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 12px; }
+            @page { size: landscape; margin: 10mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #dc2626; padding-bottom: 12px; margin-bottom: 14px; }
+            .title { font-size: 20px; font-weight: 900; color: #0f172a; margin: 0; }
+            .subtitle { font-size: 12px; color: #64748b; margin-top: 3px; font-weight: 600; }
+            .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; margin-bottom: 14px; display: flex; gap: 20px; flex-wrap: wrap; font-size: 11.5px; }
             .meta-item strong { color: #0f172a; }
             table { width: 100%; border-collapse: collapse; text-align: left; }
-            th { background: #0f172a; color: #ffffff; padding: 10px 8px; font-size: 12px; font-weight: 800; }
+            th { background: #0f172a; color: #ffffff; padding: 8px 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+            td { vertical-align: top; }
             @media print {
-              .no-print { display: none; }
+              .no-print { display: none !important; }
               body { padding: 0; }
             }
           </style>
         </head>
         <body>
-          <div class="no-print" style="margin-bottom: 15px; display: flex; gap: 10px;">
-            <button onclick="window.print()" style="background:#dc2626;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;">
-              🖨️ Print / Save as PDF
+          <div class="no-print" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+            <button onclick="window.print()" style="background:#dc2626;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-weight:800;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(220,38,38,0.3);">
+              <span>🖨️</span> Print / Save as PDF
             </button>
-            <button onclick="window.close()" style="background:#64748b;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">
-              Close
+            <button onclick="window.close()" style="background:#64748b;color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13.5px;cursor:pointer;">
+              Close Window
             </button>
+            <span style="font-size:12px;color:#64748b;margin-left:10px;">
+              💡 <em>Tip: In Chrome Print Settings, enable "Background graphics" to preserve table colors.</em>
+            </span>
           </div>
           <div class="header">
             <div>
               <h1 class="title">NALANDA COLLEGE QUIZ CLUB (NCQC)</h1>
-              <div class="subtitle">Official Competition & Event Registrations Dossier Report</div>
+              <div class="subtitle">Official Competition & Event Registrations Dossier Report • Active Cloud Data</div>
             </div>
-            <div style="text-align: right; font-size: 12px; color: #64748b;">
-              <div>Generated: ${new Date().toLocaleString()}</div>
-              <div style="font-weight:900;color:#dc2626;margin-top:2px;">Total Records: ${filteredSubmissions.length}</div>
+            <div style="text-align: right; font-size: 11.5px; color: #64748b;">
+              <div>Generated: <strong>${new Date().toLocaleString()}</strong></div>
+              <div style="font-weight:900;color:#dc2626;margin-top:2px;font-size:12.5px;">Total Applications: ${filteredSubmissions.length}</div>
             </div>
           </div>
           <div class="meta-box">
@@ -878,15 +1114,15 @@ export default function CompetitionFormsAdmin() {
           <table>
             <thead>
               <tr>
-                <th style="width:25px;">#</th>
-                <th>Registration ID</th>
-                <th>Candidate / School</th>
-                <th>Contact</th>
-                <th>Form Title</th>
-                <th>Category</th>
-                <th>Team Squad</th>
-                <th>Submitted Date</th>
-                <th>Status</th>
+                <th style="width:25px;text-align:center;">#</th>
+                <th style="width:115px;">Registration ID</th>
+                <th style="width:180px;">School / Candidate</th>
+                <th style="width:160px;">Contact Details</th>
+                <th style="width:140px;">Competition</th>
+                <th>Official Team Squad & Member NICs</th>
+                <th style="width:130px;">Attached Slips</th>
+                <th style="width:110px;">Submitted</th>
+                <th style="width:90px;text-align:center;">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -913,12 +1149,19 @@ export default function CompetitionFormsAdmin() {
     const members = parseTeamMembers(sub);
     const fieldsHtml = Object.entries(sub.data)
       .filter(([k]) => !['Team Members', 'teamMembers', 'team_members', 'Referral ID'].includes(k))
-      .map(([k, v]) => `
-        <div style="margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
-          <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">${k}</div>
-          <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;">${String(v)}</div>
-        </div>
-      `).join('');
+      .map(([k, v]) => {
+        const valStr = String(v ?? '').trim();
+        const isFile = valStr.startsWith('/api/media/') || valStr.startsWith('http://') || valStr.startsWith('https://') || /\.(pdf|webp|png|jpe?g|gif)(\?.*)?$/i.test(valStr);
+        const displayVal = isFile
+          ? `<a href="${toAbsoluteUrl(valStr)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;color:#dc2626;font-weight:bold;text-decoration:underline;background:#fee2e2;padding:3px 8px;border-radius:6px;border:1px solid #fca5a5;font-size:12px;"><span>📄</span> Open Uploaded Document / Slip ↗</a>`
+          : valStr;
+        return `
+          <div style="margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+            <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">${k}</div>
+            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;">${displayVal}</div>
+          </div>
+        `;
+      }).join('');
 
     const membersHtml = members.length > 0 ? `
       <div style="margin-top:18px;">
@@ -932,6 +1175,7 @@ export default function CompetitionFormsAdmin() {
               <th style="padding:7px 10px;font-weight:800;color:#334155;">Full Name</th>
               <th style="padding:7px 10px;font-weight:800;color:#334155;">Grade / Class</th>
               <th style="padding:7px 10px;font-weight:800;color:#334155;">Contact / WhatsApp</th>
+              <th style="padding:7px 10px;font-weight:800;color:#334155;">NIC / ID Document</th>
             </tr>
           </thead>
           <tbody>
@@ -941,6 +1185,7 @@ export default function CompetitionFormsAdmin() {
                 <td style="padding:8px 10px;font-weight:800;color:#0f172a;">${m.name || '-'}</td>
                 <td style="padding:8px 10px;color:#64748b;font-weight:600;">${m.grade || '-'}</td>
                 <td style="padding:8px 10px;color:#047857;font-weight:700;">${m.contact || '-'}</td>
+                <td style="padding:8px 10px;color:#0284c7;font-weight:700;">${m.nicUrl ? `<a href="${toAbsoluteUrl(m.nicUrl)}" target="_blank" style="color:#0284c7;text-decoration:underline;font-weight:bold;">View NIC / ID ↗</a>` : 'Not Attached'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1608,7 +1853,7 @@ export default function CompetitionFormsAdmin() {
                               handleUpdateField(idx, {
                                 type: newType,
                                 options,
-                                teamConfig: isTeam ? (field.teamConfig || { memberCount: 4, includeGrade: true, includePhone: true }) : undefined
+                                teamConfig: isTeam ? (field.teamConfig || { memberCount: 4, includeGrade: true, includePhone: true, includeNic: false, requireNic: false }) : undefined
                               });
                               if (options) {
                                 setOptionsInputBuffer(prev => ({ ...prev, [field.id]: options.join(', ') }));
@@ -1745,6 +1990,45 @@ export default function CompetitionFormsAdmin() {
                                 />
                                 Ask Leader Phone / WhatsApp
                               </label>
+
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#166534', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={field.teamConfig?.includeNic === true}
+                                  onChange={(e) => handleUpdateField(idx, {
+                                    teamConfig: {
+                                      ...(field.teamConfig || {}),
+                                      includeNic: e.target.checked
+                                    }
+                                  })}
+                                  style={{ accentColor: '#16a34a', width: '16px', height: '16px' }}
+                                />
+                                🆔 Ask Member NIC / Student ID (Photo or PDF)
+                              </label>
+
+                              {field.teamConfig?.includeNic && (
+                                <div style={{ background: field.teamConfig?.requireNic ? '#fef2f2' : '#ecfdf5', padding: '0.45rem 0.75rem', borderRadius: '8px', border: field.teamConfig?.requireNic ? '1.5px solid #f87171' : '1px solid #86efac', marginTop: '0.2rem' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 800, color: field.teamConfig?.requireNic ? '#991b1b' : '#166534', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={field.teamConfig?.requireNic === true}
+                                      onChange={(e) => handleUpdateField(idx, {
+                                        teamConfig: {
+                                          ...(field.teamConfig || {}),
+                                          requireNic: e.target.checked
+                                        }
+                                      })}
+                                      style={{ accentColor: '#dc2626', width: '16px', height: '16px' }}
+                                    />
+                                    <span>🔒 Require Member NIC (Mandatory upload before submit)</span>
+                                  </label>
+                                  <div style={{ fontSize: '0.72rem', color: field.teamConfig?.requireNic ? '#b91c1c' : '#15803d', marginTop: '0.2rem', marginLeft: '1.4rem' }}>
+                                    {field.teamConfig?.requireNic 
+                                      ? '⚠️ Candidates must attach a photo or PDF for every member to register.' 
+                                      : 'ℹ️ Candidates can optionally upload their NIC/ID photo or PDF.'}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -2582,13 +2866,22 @@ export default function CompetitionFormsAdmin() {
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                             {Array.from({ length: field.teamConfig?.memberCount || 4 }).map((_, mi) => (
-                              <div key={mi} style={{ background: '#fff', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: accentColor, color: '#fff', fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  {mi + 1}
-                                </span>
-                                <div style={{ flex: 1, fontSize: '0.82rem', color: '#64748b' }}>
-                                  {mi === 0 ? 'Member 1 (Team Leader) • Name, Grade & WhatsApp' : `Member ${mi + 1} • Full Name & Grade`}
+                              <div key={mi} style={{ background: '#fff', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: accentColor, color: '#fff', fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    {mi + 1}
+                                  </span>
+                                  <div style={{ flex: 1, fontSize: '0.82rem', color: '#64748b' }}>
+                                    {mi === 0 ? 'Member 1 (Team Leader) • Name, Grade & WhatsApp' : `Member ${mi + 1} • Full Name & Grade`}
+                                  </div>
                                 </div>
+                                {field.teamConfig?.includeNic && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: '#0369a1', background: '#f0f9ff', padding: '0.35rem 0.65rem', borderRadius: '6px', border: '1px dashed #7dd3fc', marginLeft: '2rem' }}>
+                                    <span>📎</span>
+                                    <span>Upload NIC / Student ID (Photo or PDF)</span>
+                                    {field.teamConfig?.requireNic && <span style={{ color: '#dc2626', fontWeight: 800 }}>* (Required)</span>}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -3291,16 +3584,61 @@ export default function CompetitionFormsAdmin() {
                   if (['Team Members', 'teamMembers', 'team_members'].includes(key)) return false;
                   return true;
                 })
-                .map(([key, val]) => (
-                  <div key={key} style={{ borderBottom: '1px solid #eef2f6', paddingBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'block' }}>
-                      {key}
-                    </span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: '0.15rem', display: 'block' }}>
-                      {String(val)}
-                    </span>
-                  </div>
-                ))}
+                .map(([key, val]) => {
+                  const valStr = String(val || '');
+                  const isFileLink = typeof val === 'string' && (valStr.startsWith('/api/media/') || valStr.startsWith('http://') || valStr.startsWith('https://') || /\.(webp|png|jpe?g|gif|pdf)(\?.*)?$/i.test(valStr));
+                  const isPdf = valStr.toLowerCase().includes('.pdf');
+
+                  return (
+                    <div key={key} style={{ borderBottom: '1px solid #eef2f6', paddingBottom: '0.65rem' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'block' }}>
+                        {key}
+                      </span>
+                      {isFileLink ? (
+                        <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          {!isPdf && (
+                            <img
+                              src={valStr}
+                              alt={key}
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                            />
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <a
+                              href={valStr}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                background: '#dc2626',
+                                color: '#ffffff',
+                                padding: '0.4rem 0.85rem',
+                                borderRadius: '8px',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                boxShadow: '0 2px 5px rgba(220, 38, 38, 0.25)'
+                              }}
+                            >
+                              <span>{isPdf ? '📄' : '🖼️'}</span>
+                              <span>{isPdf ? 'Open Uploaded PDF Document' : 'View Uploaded Image'}</span>
+                              <span style={{ fontSize: '0.75rem' }}>↗</span>
+                            </a>
+                            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                              Cloud-stored & optimized
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: '0.15rem', display: 'block' }}>
+                          {valStr}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
 
             {/* Dedicated Modern Team Squad Cards (Image 4 Enhancement) */}
@@ -3352,6 +3690,37 @@ export default function CompetitionFormsAdmin() {
                         {m.contact && (
                           <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700, marginTop: '0.2rem' }}>
                             📞 {m.contact}
+                          </div>
+                        )}
+                        {m.nicUrl ? (
+                          <div style={{ marginTop: '0.65rem', paddingTop: '0.55rem', borderTop: '1px dashed #cbd5e1' }}>
+                            <a
+                              href={m.nicUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                background: '#0284c7',
+                                color: '#ffffff',
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                boxShadow: '0 2px 5px rgba(2, 132, 199, 0.25)',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>{m.nicUrl.toLowerCase().includes('.pdf') ? '📄' : '🆔'}</span>
+                              <span>{m.nicUrl.toLowerCase().includes('.pdf') ? 'View NIC (PDF)' : 'View NIC Photo'}</span>
+                              <span style={{ fontSize: '0.7rem' }}>↗</span>
+                            </a>
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: '0.45rem', fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                            No NIC attached
                           </div>
                         )}
                       </div>

@@ -13,6 +13,7 @@ const MIME_TYPES: Record<string, string> = {
   gif: 'image/gif',
   avif: 'image/avif',
   ico: 'image/x-icon',
+  pdf: 'application/pdf',
 };
 
 function getMimeType(fileName: string): string {

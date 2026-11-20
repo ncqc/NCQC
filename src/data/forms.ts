@@ -30,6 +30,8 @@ export interface FormField {
     includePhone?: boolean;
     includeGrade?: boolean;
     enforceExactCount?: boolean;
+    includeNic?: boolean;
+    requireNic?: boolean;
   };
 }
 
@@ -78,7 +80,7 @@ export interface FormSubmission {
   submittedAt: string;
   status: 'confirmed' | 'pending' | 'rejected';
   data: Record<string, any>;
-  teamMembers?: Array<{ name: string; grade?: string; role?: string; contact?: string }>;
+  teamMembers?: Array<{ name: string; grade?: string; role?: string; contact?: string; nicUrl?: string; nicName?: string }>;
   isStandalone?: boolean;
 }
 

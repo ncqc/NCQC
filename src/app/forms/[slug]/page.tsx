@@ -13,13 +13,15 @@ export default function StandalonePublicFormPage() {
 
   const [form, setForm] = useState<CompetitionForm | null>(null);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
-  const [teamMembersList, setTeamMembersList] = useState<Array<{ name: string; grade: string; contact: string; role: string }>>([
+  const [teamMembersList, setTeamMembersList] = useState<Array<{ name: string; grade: string; contact: string; role: string; nicUrl?: string; nicName?: string }>>([
     { name: '', grade: '', contact: '', role: 'Team Leader' },
     { name: '', grade: '', contact: '', role: 'Member 2' },
     { name: '', grade: '', contact: '', role: 'Member 3' },
     { name: '', grade: '', contact: '', role: 'Member 4' }
   ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
+  const [uploadingNic, setUploadingNic] = useState<Record<number, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [copiedNotice, setCopiedNotice] = useState(false);
@@ -133,7 +135,9 @@ export default function StandalonePublicFormPage() {
           name: prev[i]?.name || '',
           grade: prev[i]?.grade || '',
           contact: prev[i]?.contact || '',
-          role: i === 0 ? 'Member 1 (Team Leader)' : `Member ${i + 1}`
+          role: i === 0 ? 'Member 1 (Team Leader)' : `Member ${i + 1}`,
+          nicUrl: prev[i]?.nicUrl,
+          nicName: prev[i]?.nicName
         }));
       });
     }
@@ -154,6 +158,58 @@ export default function StandalonePublicFormPage() {
     const updated = [...teamMembersList];
     updated[index] = { ...updated[index], [key]: value };
     setTeamMembersList(updated);
+  };
+
+  const handleFileUpload = async (fieldLabel: string, file: File) => {
+    setUploadingFiles(prev => ({ ...prev, [fieldLabel]: true }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        handleInputChange(fieldLabel, data.url);
+      } else {
+        alert('File upload failed: ' + (data.error || 'Server error'));
+      }
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      alert('File upload error: ' + (err.message || 'Network error'));
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [fieldLabel]: false }));
+    }
+  };
+
+  const handleNicUpload = async (memberIndex: number, file: File) => {
+    setUploadingNic(prev => ({ ...prev, [memberIndex]: true }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        const updated = [...teamMembersList];
+        updated[memberIndex] = {
+          ...updated[memberIndex],
+          nicUrl: data.url,
+          nicName: file.name
+        };
+        setTeamMembersList(updated);
+      } else {
+        alert('NIC document upload failed: ' + (data.error || 'Server error'));
+      }
+    } catch (err: any) {
+      console.error('NIC upload error:', err);
+      alert('NIC upload error: ' + (err.message || 'Network error'));
+    } finally {
+      setUploadingNic(prev => ({ ...prev, [memberIndex]: false }));
+    }
   };
 
   const handleCopyId = () => {
@@ -180,6 +236,20 @@ export default function StandalonePublicFormPage() {
           const emptyIdx = teamMembersList.slice(0, targetCount).findIndex(m => !m.name.trim());
           if (emptyIdx !== -1) {
             newErrors[field.label] = `All ${targetCount} team members are strictly required. Please enter details for Member ${emptyIdx + 1}.`;
+          }
+        }
+
+        // NIC requirement validation
+        if (field.teamConfig?.includeNic && field.teamConfig?.requireNic) {
+          const checkCount = field.teamConfig?.enforceExactCount ? targetCount : teamMembersList.length;
+          for (let i = 0; i < checkCount; i++) {
+            const m = teamMembersList[i];
+            if (m && (m.name.trim() || i === 0 || field.teamConfig?.enforceExactCount)) {
+              if (!m.nicUrl) {
+                newErrors[field.label] = `Please upload the NIC / Student ID (Photo or PDF) for ${m.role || (i === 0 ? 'Team Leader' : `Member ${i + 1}`)}.`;
+                break;
+              }
+            }
           }
         }
       } else {
@@ -231,10 +301,17 @@ export default function StandalonePublicFormPage() {
         ...formValues,
         'Registration ID': generatedRef,
         ...(teamMembersList.some(m => m.name.trim()) ? {
-          'Team Members': teamMembersList.filter(m => m.name.trim()).map(m => `${m.role}: ${m.name}${m.grade ? ` (${m.grade})` : ''}${m.contact ? ` [${m.contact}]` : ''}`).join('; ')
+          'Team Members': teamMembersList.filter(m => m.name.trim()).map(m => `${m.role}: ${m.name}${m.grade ? ` (${m.grade})` : ''}${m.contact ? ` [${m.contact}]` : ''}${m.nicUrl ? ` {NIC: ${m.nicUrl}}` : ''}`).join('; ')
         } : {})
       },
-      teamMembers: teamMembersList.filter(m => m.name.trim())
+      teamMembers: teamMembersList.filter(m => m.name.trim()).map(m => ({
+        name: m.name.trim(),
+        grade: m.grade.trim(),
+        contact: m.contact.trim(),
+        role: m.role,
+        nicUrl: m.nicUrl,
+        nicName: m.nicName
+      }))
     };
 
     // Save submission directly to Firebase Cloud Database (Real Database)
@@ -634,6 +711,50 @@ export default function StandalonePublicFormPage() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Optional / Required Member NIC Upload */}
+                            {field.teamConfig?.includeNic && (
+                              <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0' }}>
+                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
+                                  🆔 Student NIC / ID Card (Photo or PDF) {field.teamConfig?.requireNic && <span style={{ color: '#dc2626' }}>* (Required)</span>}
+                                </label>
+                                {member.nicUrl ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.45rem 0.75rem', borderRadius: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 800 }}>✓ Attached:</span>
+                                    <a href={member.nicUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 700, textDecoration: 'underline' }}>
+                                      {member.nicName || 'View Document'}
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...teamMembersList];
+                                        updated[mIdx] = { ...updated[mIdx], nicUrl: undefined, nicName: undefined };
+                                        setTeamMembersList(updated);
+                                      }}
+                                      style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+                                    >
+                                      ✕ Remove
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      disabled={isSubmitting || uploadingNic[mIdx]}
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (f) handleNicUpload(mIdx, f);
+                                      }}
+                                      style={{ fontSize: '0.82rem' }}
+                                    />
+                                    {uploadingNic[mIdx] && (
+                                      <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>⏳ Uploading & compressing...</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -688,6 +809,47 @@ export default function StandalonePublicFormPage() {
                           <option key={oi} value={opt} style={{ color: '#0f172a' }}>{opt}</option>
                         ))}
                       </select>
+                    )}
+
+                    {/* File Upload Box */}
+                    {field.type === 'file' && (
+                      <div style={{ border: fieldError ? '2px dashed #ef4444' : '2px dashed #cbd5e1', borderRadius: '14px', padding: '1.75rem', textAlign: 'center', background: '#f8fafc' }}>
+                        <span style={{ fontSize: '1.85rem', display: 'block', marginBottom: '0.4rem' }}>📎</span>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155', marginBottom: '0.5rem' }}>
+                          {field.placeholder || 'Upload Document / Slip (PDF, JPG, PNG)'}
+                        </div>
+                        {formValues[field.label] ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.55rem 1.1rem', borderRadius: '10px', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: 800 }}>✓ File Uploaded</span>
+                            <a href={formValues[field.label]} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.82rem', color: '#0284c7', fontWeight: 700, textDecoration: 'underline' }}>
+                              Preview / Open File ↗
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleInputChange(field.label, '')}
+                              style={{ background: 'transparent', border: 'none', color: '#dc2626', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', marginLeft: '0.5rem' }}
+                            >
+                              ✕ Change
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                            <input 
+                              type="file" 
+                              disabled={isSubmitting || uploadingFiles[field.label]}
+                              accept="image/*,application/pdf"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) handleFileUpload(field.label, f);
+                              }} 
+                              style={{ fontSize: '0.85rem' }} 
+                            />
+                            {uploadingFiles[field.label] && (
+                              <span style={{ fontSize: '0.8rem', color: '#0284c7', fontWeight: 700 }}>⏳ Uploading & optimizing to cloud...</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {fieldError && (
